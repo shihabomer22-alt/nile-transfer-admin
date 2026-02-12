@@ -23,6 +23,9 @@ const panels = document.querySelectorAll(".panel");
 
 const clientForm = document.getElementById("clientForm");
 const orderForm = document.getElementById("orderForm");
+
+const clientsBody = document.getElementById("clientsBody");
+const transfersBody = document.getElementById("transfersBody");
 const rateForm = document.getElementById("rateForm");
 
 const clientsBody = document.getElementById("clientsBody");
@@ -33,6 +36,9 @@ const historyBody = document.getElementById("historyBody");
 const clientSelect = document.getElementById("clientSelect");
 const sendCountry = document.getElementById("sendCountry");
 const receiveCountry = document.getElementById("receiveCountry");
+const receiverContactType = document.getElementById("receiverContactType");
+const receiverPhoneField = document.getElementById("receiverPhoneField");
+const receiverBankField = document.getElementById("receiverBankField");
 const rateFrom = document.getElementById("rateFrom");
 const rateTo = document.getElementById("rateTo");
 const ratePreview = document.getElementById("ratePreview");
@@ -57,6 +63,9 @@ function initialize() {
 
   setupCountryOptions(sendCountry);
   setupCountryOptions(receiveCountry);
+
+  clientForm.addEventListener("submit", onSaveClient);
+  orderForm.addEventListener("submit", onSubmitOrder);
   setupCountryOptions(rateFrom);
   setupCountryOptions(rateTo);
 
@@ -67,6 +76,12 @@ function initialize() {
   clientSearch.addEventListener("input", renderClients);
 
   clientSelect.addEventListener("change", updateSelectedClient);
+  receiverContactType.addEventListener("change", updateReceiverContactFields);
+  [sendCountry, receiveCountry, orderForm.sendAmount, orderForm.manualRate].forEach((el) => {
+    el.addEventListener("input", previewRate);
+  });
+
+  updateReceiverContactFields();
   [sendCountry, receiveCountry, orderForm.sendAmount].forEach((el) => {
     el.addEventListener("input", previewRate);
   });
@@ -109,6 +124,7 @@ function onSaveClient(event) {
   alert(`Client saved with reference: ${client.ref}`);
 }
 
+async function onSubmitOrder(event) {
 function onSaveRate(event) {
   event.preventDefault();
   const form = new FormData(event.target);
@@ -156,6 +172,35 @@ function onSubmitOrder(event) {
   }
 
   const sendAmount = Number(form.get("sendAmount"));
+  const manualRate = Number(form.get("manualRate"));
+  const sendCurrency = findCurrency(send);
+  const receiveCurrency = findCurrency(receive);
+  if (!manualRate || manualRate <= 0) {
+    alert("Please enter a valid manual exchange rate.");
+    return;
+  }
+
+  const proofFile = orderForm.proof.files?.[0];
+  if (!proofFile) {
+    alert("Please upload proof of payment image.");
+    return;
+  }
+
+  const proofDataUrl = await fileToDataUrl(proofFile);
+
+  const selectedContactType = form.get("receiverContactType");
+  const receiverPhone = form.get("receiverPhone").trim();
+  const receiverBankAccount = form.get("receiverBankAccount").trim();
+  if (selectedContactType === "phone" && !receiverPhone) {
+    alert("Please enter the receiver phone number.");
+    return;
+  }
+  if (selectedContactType === "bank" && !receiverBankAccount) {
+    alert("Please enter the receiver bank account.");
+    return;
+  }
+
+  const receiveAmount = sendAmount * manualRate;
   const sendCurrency = findCurrency(send);
   const receiveCurrency = findCurrency(receive);
   const rateData = state.rates[`${sendCurrency}_${receiveCurrency}`];
@@ -176,6 +221,14 @@ function onSubmitOrder(event) {
     receiveCurrency,
     sendAmount,
     receiveAmount,
+    rate: manualRate,
+    paymentMethod: form.get("paymentMethod"),
+    proofImageName: proofFile.name,
+    proofImageDataUrl: proofDataUrl,
+    receiverContactType: selectedContactType,
+    receiverName: form.get("receiverName").trim(),
+    receiverPhone,
+    receiverBankAccount,
     rate: rateData.rate,
     paymentMethod: form.get("paymentMethod"),
     proof: form.get("proof").trim(),
@@ -189,6 +242,7 @@ function onSubmitOrder(event) {
   event.target.reset();
   selectedClientInfo.textContent = "Select a client to load details.";
   ratePreview.textContent = "Set countries and amount to preview conversion.";
+  updateReceiverContactFields();
   renderAll();
   switchTab("dashboard");
 }
@@ -259,6 +313,14 @@ function renderTransfers() {
         <td>${transfer.paymentMethod}</td>
         <td>
           <span class="status ${transfer.status}">${transfer.status}</span><br />
+          <small class="muted">Rate: ${transfer.rate} | Proof: ${transfer.proofImageName || "Image"}</small><br />
+          <small class="muted">Receiver: ${transfer.receiverName}</small><br />
+          <small class="muted">${formatReceiverContact(transfer)}</small>
+          ${
+            transfer.proofImageDataUrl
+              ? `<br /><a href="${transfer.proofImageDataUrl}" target="_blank" rel="noopener">View proof image</a>`
+              : ""
+          }
           <small class="muted">Proof: ${transfer.proof}</small>
         </td>
         <td>
@@ -322,6 +384,8 @@ function previewRate() {
   const send = sendCountry.value;
   const receive = receiveCountry.value;
   const amount = Number(orderForm.sendAmount.value || 0);
+  const rate = Number(orderForm.manualRate.value || 0);
+  if (!send || !receive || !amount || !rate) {
   if (!send || !receive || !amount) {
     ratePreview.textContent = "Set countries and amount to preview conversion.";
     return;
@@ -333,6 +397,8 @@ function previewRate() {
 
   const sendCurrency = findCurrency(send);
   const receiveCurrency = findCurrency(receive);
+  const receiveAmount = amount * rate;
+  ratePreview.textContent = `Rate: 1 ${sendCurrency} = ${rate} ${receiveCurrency} | Estimated receive: ${money(
   const rateData = state.rates[`${sendCurrency}_${receiveCurrency}`];
   if (!rateData) {
     ratePreview.textContent = `No rate configured from ${sendCurrency} to ${receiveCurrency}.`;
@@ -409,4 +475,35 @@ function load(key, fallback) {
 
 function persist(key, data) {
   localStorage.setItem(key, JSON.stringify(data));
+}
+
+function updateReceiverContactFields() {
+  const selected = receiverContactType.value;
+  const phoneInput = orderForm.receiverPhone;
+  const bankInput = orderForm.receiverBankAccount;
+
+  receiverPhoneField.classList.toggle("hidden", selected !== "phone");
+  receiverBankField.classList.toggle("hidden", selected !== "bank");
+
+  phoneInput.required = selected === "phone";
+  bankInput.required = selected === "bank";
+
+  if (selected !== "phone") phoneInput.value = "";
+  if (selected !== "bank") bankInput.value = "";
+}
+
+function formatReceiverContact(transfer) {
+  if (transfer.receiverContactType === "bank") {
+    return `Bank: ${transfer.receiverBankAccount}`;
+  }
+  return `Phone: ${transfer.receiverPhone}`;
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
 }

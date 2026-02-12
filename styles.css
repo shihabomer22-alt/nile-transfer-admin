@@ -219,6 +219,10 @@ td {
   color: var(--muted);
 }
 
+.hidden {
+  display: none;
+}
+
 .result-box {
   background: #eff6ff;
   border: 1px solid #bfdbfe;

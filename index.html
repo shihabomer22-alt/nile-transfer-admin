@@ -12,6 +12,7 @@
         <img src="assets/nile-transfer-logo.svg" alt="Nile Transfer logo" class="brand-logo" />
         <div>
           <h1>Nile Transfer Admin</h1>
+          <p>Client records, manual rate transfer processing, and status tracking</p>
           <p>Client records, exchange rates, and transfer order tracking</p>
         </div>
       </div>
@@ -73,6 +74,7 @@
             </div>
             <form id="clientForm" class="form-grid">
               <label>Full Name <input name="fullName" required /></label>
+              <label>Full Address <textarea name="address" rows="3" required></textarea></label>
               <label>Address <input name="address" required /></label>
               <label>Email <input type="email" name="email" required /></label>
               <label>Phone Number <input name="phone" required /></label>
@@ -130,6 +132,11 @@
             </label>
 
             <label>
+              Manual Exchange Rate
+              <input type="number" name="manualRate" min="0.000001" step="0.000001" required />
+            </label>
+
+            <label>
               Payment Method
               <select name="paymentMethod" required>
                 <option value="">Choose method</option>
@@ -141,6 +148,31 @@
 
             <label>
               Proof of Payment
+              <input type="file" name="proof" id="proofFile" accept="image/*" required />
+            </label>
+
+            <label>
+              Receiver Full Name
+              <input name="receiverName" placeholder="Receiver legal name" required />
+            </label>
+
+            <label>
+              Receiver Contact Type
+              <select name="receiverContactType" id="receiverContactType" required>
+                <option value="">Choose contact option</option>
+                <option value="phone">Phone Number</option>
+                <option value="bank">Bank Account</option>
+              </select>
+            </label>
+
+            <label id="receiverPhoneField">
+              Receiver Phone Number
+              <input name="receiverPhone" placeholder="Receiver phone" />
+            </label>
+
+            <label id="receiverBankField">
+              Receiver Bank Account
+              <input name="receiverBankAccount" placeholder="Account / IBAN / wallet" />
               <input name="proof" placeholder="Receipt number, URL, or notes" required />
             </label>
 
