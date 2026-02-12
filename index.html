@@ -13,7 +13,6 @@
         <div>
           <h1>Nile Transfer Admin</h1>
           <p>Client records, manual rate transfer processing, and status tracking</p>
-          <p>Client records, exchange rates, and transfer order tracking</p>
         </div>
       </div>
       <span class="badge">Internal System</span>
@@ -23,7 +22,6 @@
       <button class="tab active" data-tab="dashboard">Dashboard</button>
       <button class="tab" data-tab="clients">Clients</button>
       <button class="tab" data-tab="orders">New Transfer</button>
-      <button class="tab" data-tab="rates">Exchange Rates</button>
     </nav>
 
     <main>
@@ -74,8 +72,8 @@
             </div>
             <form id="clientForm" class="form-grid">
               <label>Full Name <input name="fullName" required /></label>
-              <label>Full Address <textarea name="address" rows="3" required></textarea></label>
-              <label>Address <input name="address" required /></label>
+              <label>Address Line 1 <input name="addressLine1" placeholder="Street, building, area" required /></label>
+              <label>Address Line 2 <input name="addressLine2" placeholder="Apartment, floor, city, state" /></label>
               <label>Email <input type="email" name="email" required /></label>
               <label>Phone Number <input name="phone" required /></label>
               <button type="submit" class="primary">Save Client</button>
@@ -173,7 +171,6 @@
             <label id="receiverBankField">
               Receiver Bank Account
               <input name="receiverBankAccount" placeholder="Account / IBAN / wallet" />
-              <input name="proof" placeholder="Receipt number, URL, or notes" required />
             </label>
 
             <label>
@@ -188,53 +185,6 @@
         </article>
       </section>
 
-      <section id="rates" class="panel">
-        <div class="grid two-col">
-          <article class="card">
-            <div class="card-header">
-              <h2>Set Exchange Rate</h2>
-            </div>
-            <form id="rateForm" class="form-grid">
-              <label>
-                From Country
-                <select name="fromCountry" id="rateFrom" required></select>
-              </label>
-              <label>
-                To Country
-                <select name="toCountry" id="rateTo" required></select>
-              </label>
-              <label>
-                Rate
-                <input type="number" name="rate" min="0.000001" step="0.000001" required />
-              </label>
-              <label>
-                Note
-                <input name="note" placeholder="Why this rate / effective date" />
-              </label>
-              <button class="primary" type="submit">Save Rate</button>
-            </form>
-          </article>
-
-          <article class="card">
-            <div class="card-header">
-              <h2>Saved Rates</h2>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Direction</th>
-                    <th>Rate</th>
-                    <th>Note</th>
-                    <th>Updated</th>
-                  </tr>
-                </thead>
-                <tbody id="ratesBody"></tbody>
-              </table>
-            </div>
-          </article>
-        </div>
-      </section>
     </main>
 
     <dialog id="profileDialog">

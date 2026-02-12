@@ -8,13 +8,11 @@ const COUNTRIES = [
 
 const STORAGE_KEYS = {
   clients: "nile.clients",
-  rates: "nile.rates",
   transfers: "nile.transfers"
 };
 
 const state = {
   clients: load(STORAGE_KEYS.clients, []),
-  rates: load(STORAGE_KEYS.rates, {}),
   transfers: load(STORAGE_KEYS.transfers, [])
 };
 
@@ -26,11 +24,6 @@ const orderForm = document.getElementById("orderForm");
 
 const clientsBody = document.getElementById("clientsBody");
 const transfersBody = document.getElementById("transfersBody");
-const rateForm = document.getElementById("rateForm");
-
-const clientsBody = document.getElementById("clientsBody");
-const transfersBody = document.getElementById("transfersBody");
-const ratesBody = document.getElementById("ratesBody");
 const historyBody = document.getElementById("historyBody");
 
 const clientSelect = document.getElementById("clientSelect");
@@ -39,8 +32,6 @@ const receiveCountry = document.getElementById("receiveCountry");
 const receiverContactType = document.getElementById("receiverContactType");
 const receiverPhoneField = document.getElementById("receiverPhoneField");
 const receiverBankField = document.getElementById("receiverBankField");
-const rateFrom = document.getElementById("rateFrom");
-const rateTo = document.getElementById("rateTo");
 const ratePreview = document.getElementById("ratePreview");
 const selectedClientInfo = document.getElementById("selectedClientInfo");
 
@@ -66,12 +57,6 @@ function initialize() {
 
   clientForm.addEventListener("submit", onSaveClient);
   orderForm.addEventListener("submit", onSubmitOrder);
-  setupCountryOptions(rateFrom);
-  setupCountryOptions(rateTo);
-
-  clientForm.addEventListener("submit", onSaveClient);
-  orderForm.addEventListener("submit", onSubmitOrder);
-  rateForm.addEventListener("submit", onSaveRate);
   closeDialog.addEventListener("click", () => profileDialog.close());
   clientSearch.addEventListener("input", renderClients);
 
@@ -82,10 +67,6 @@ function initialize() {
   });
 
   updateReceiverContactFields();
-  [sendCountry, receiveCountry, orderForm.sendAmount].forEach((el) => {
-    el.addEventListener("input", previewRate);
-  });
-
   renderAll();
 }
 
@@ -111,7 +92,8 @@ function onSaveClient(event) {
     id: crypto.randomUUID(),
     ref: nextClientRef(),
     fullName: form.get("fullName").trim(),
-    address: form.get("address").trim(),
+    addressLine1: form.get("addressLine1").trim(),
+    addressLine2: form.get("addressLine2").trim(),
     email: form.get("email").trim(),
     phone: form.get("phone").trim(),
     createdAt: new Date().toISOString()
@@ -125,35 +107,6 @@ function onSaveClient(event) {
 }
 
 async function onSubmitOrder(event) {
-function onSaveRate(event) {
-  event.preventDefault();
-  const form = new FormData(event.target);
-  const fromCountry = form.get("fromCountry");
-  const toCountry = form.get("toCountry");
-  if (fromCountry === toCountry) {
-    alert("From and To countries must be different.");
-    return;
-  }
-
-  const fromCurrency = findCurrency(fromCountry);
-  const toCurrency = findCurrency(toCountry);
-  const key = `${fromCurrency}_${toCurrency}`;
-
-  state.rates[key] = {
-    rate: Number(form.get("rate")),
-    note: form.get("note").trim(),
-    fromCountry,
-    toCountry,
-    updatedAt: new Date().toISOString()
-  };
-
-  persist(STORAGE_KEYS.rates, state.rates);
-  event.target.reset();
-  renderRates();
-  previewRate();
-}
-
-function onSubmitOrder(event) {
   event.preventDefault();
   const form = new FormData(event.target);
 
@@ -201,16 +154,6 @@ function onSubmitOrder(event) {
   }
 
   const receiveAmount = sendAmount * manualRate;
-  const sendCurrency = findCurrency(send);
-  const receiveCurrency = findCurrency(receive);
-  const rateData = state.rates[`${sendCurrency}_${receiveCurrency}`];
-
-  if (!rateData) {
-    alert(`No rate found for ${sendCurrency} to ${receiveCurrency}. Please add it in Exchange Rates.`);
-    return;
-  }
-
-  const receiveAmount = sendAmount * rateData.rate;
   const transfer = {
     id: crypto.randomUUID(),
     orderRef: nextOrderRef(),
@@ -229,9 +172,6 @@ function onSubmitOrder(event) {
     receiverName: form.get("receiverName").trim(),
     receiverPhone,
     receiverBankAccount,
-    rate: rateData.rate,
-    paymentMethod: form.get("paymentMethod"),
-    proof: form.get("proof").trim(),
     note: form.get("note").trim(),
     status: "Pending",
     createdAt: new Date().toISOString()
@@ -251,7 +191,6 @@ function renderAll() {
   renderClients();
   renderClientSelect();
   renderTransfers();
-  renderRates();
   renderStats();
 }
 
@@ -321,7 +260,6 @@ function renderTransfers() {
               ? `<br /><a href="${transfer.proofImageDataUrl}" target="_blank" rel="noopener">View proof image</a>`
               : ""
           }
-          <small class="muted">Proof: ${transfer.proof}</small>
         </td>
         <td>
           <select data-status="${transfer.id}">
@@ -345,26 +283,6 @@ function renderTransfers() {
   });
 }
 
-function renderRates() {
-  const entries = Object.values(state.rates).sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
-  if (!entries.length) {
-    ratesBody.innerHTML = '<tr><td colspan="4" class="muted">No rates saved yet.</td></tr>';
-    return;
-  }
-
-  ratesBody.innerHTML = entries
-    .map(
-      (entry) => `
-      <tr>
-        <td>${entry.fromCountry} → ${entry.toCountry}</td>
-        <td>${entry.rate}</td>
-        <td>${entry.note || "—"}</td>
-        <td>${new Date(entry.updatedAt).toLocaleString()}</td>
-      </tr>`
-    )
-    .join("");
-}
-
 function renderStats() {
   statClients.textContent = state.clients.length;
   statTransfers.textContent = state.transfers.length;
@@ -386,7 +304,6 @@ function previewRate() {
   const amount = Number(orderForm.sendAmount.value || 0);
   const rate = Number(orderForm.manualRate.value || 0);
   if (!send || !receive || !amount || !rate) {
-  if (!send || !receive || !amount) {
     ratePreview.textContent = "Set countries and amount to preview conversion.";
     return;
   }
@@ -399,14 +316,6 @@ function previewRate() {
   const receiveCurrency = findCurrency(receive);
   const receiveAmount = amount * rate;
   ratePreview.textContent = `Rate: 1 ${sendCurrency} = ${rate} ${receiveCurrency} | Estimated receive: ${money(
-  const rateData = state.rates[`${sendCurrency}_${receiveCurrency}`];
-  if (!rateData) {
-    ratePreview.textContent = `No rate configured from ${sendCurrency} to ${receiveCurrency}.`;
-    return;
-  }
-
-  const receiveAmount = amount * rateData.rate;
-  ratePreview.textContent = `Rate: 1 ${sendCurrency} = ${rateData.rate} ${receiveCurrency} | Estimated receive: ${money(
     receiveAmount,
     receiveCurrency
   )}`;
@@ -417,7 +326,7 @@ function openProfile(clientId) {
   if (!client) return;
 
   profileName.textContent = `${client.fullName} (${client.ref})`;
-  profileMeta.textContent = `${client.email} | ${client.phone} | ${client.address}`;
+  profileMeta.textContent = `${client.email} | ${client.phone} | ${formatClientAddress(client)}`;
 
   const history = state.transfers.filter((transfer) => transfer.clientId === clientId);
   if (!history.length) {
@@ -462,6 +371,14 @@ function findCurrency(countryName) {
 
 function money(value, currency) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 2 }).format(value);
+}
+
+
+function formatClientAddress(client) {
+  if (client.addressLine1 || client.addressLine2) {
+    return [client.addressLine1, client.addressLine2].filter(Boolean).join(", ");
+  }
+  return client.address || "";
 }
 
 function load(key, fallback) {
