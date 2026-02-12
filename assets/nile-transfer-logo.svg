@@ -1,0 +1,36 @@
+<svg width="520" height="220" viewBox="0 0 520 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cyan" x1="124" y1="24" x2="219" y2="127" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#42D4F2"/>
+      <stop offset="1" stop-color="#67EAF7"/>
+    </linearGradient>
+    <linearGradient id="blueL" x1="66" y1="76" x2="166" y2="161" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#032E9A"/>
+      <stop offset="1" stop-color="#0C74E6"/>
+    </linearGradient>
+    <linearGradient id="blueR" x1="274" y1="82" x2="195" y2="161" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1477EF"/>
+      <stop offset="1" stop-color="#0836A7"/>
+    </linearGradient>
+    <linearGradient id="cyanB" x1="167" y1="112" x2="249" y2="201" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#66EAF7"/>
+      <stop offset="1" stop-color="#3ACDEF"/>
+    </linearGradient>
+    <filter id="shadow" x="10" y="0" width="320" height="190" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#0F172A" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <rect x="122" y="23" width="76" height="124" rx="34" transform="rotate(42 122 23)" fill="url(#cyan)"/>
+    <rect x="67" y="73" width="76" height="124" rx="34" transform="rotate(42 67 73)" fill="url(#blueL)"/>
+    <rect x="251" y="76" width="76" height="124" rx="34" transform="rotate(42 251 76)" fill="url(#blueR)"/>
+    <rect x="161" y="111" width="76" height="124" rx="34" transform="rotate(42 161 111)" fill="url(#cyanB)"/>
+
+    <path d="M157 112L198 79L224 104L183 137L157 112Z" fill="white"/>
+    <path d="M194 143L228 95L255 116L221 164L194 143Z" fill="white"/>
+  </g>
+
+  <text x="76" y="206" fill="#020617" font-size="74" font-family="Segoe UI, Arial, sans-serif" font-style="italic" font-weight="700">Nile</text>
+  <text x="214" y="206" fill="#020617" font-size="74" font-family="Segoe UI, Arial, sans-serif" font-style="italic" font-weight="400">Transfer</text>
+</svg>

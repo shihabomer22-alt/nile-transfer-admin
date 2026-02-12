@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nile Transfer Admin</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-wrap">
+        <img src="assets/nile-transfer-logo.svg" alt="Nile Transfer logo" class="brand-logo" />
+        <div>
+          <h1>Nile Transfer Admin</h1>
+          <p>Client records, manual rate transfer processing, and status tracking</p>
+        </div>
+      </div>
+      <span class="badge">Internal System</span>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="dashboard">Dashboard</button>
+      <button class="tab" data-tab="clients">Clients</button>
+      <button class="tab" data-tab="orders">New Transfer</button>
+    </nav>
+
+    <main>
+      <section id="dashboard" class="panel active">
+        <div class="stats-grid">
+          <article class="stat-card">
+            <h3>Total Clients</h3>
+            <p id="statClients">0</p>
+          </article>
+          <article class="stat-card">
+            <h3>Total Transfers</h3>
+            <p id="statTransfers">0</p>
+          </article>
+          <article class="stat-card">
+            <h3>Pending Transfers</h3>
+            <p id="statPending">0</p>
+          </article>
+        </div>
+
+        <article class="card">
+          <div class="card-header">
+            <h2>Transfers</h2>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Order Ref</th>
+                  <th>Client</th>
+                  <th>Route</th>
+                  <th>Amount</th>
+                  <th>Payment</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="transfersBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section id="clients" class="panel">
+        <div class="grid two-col">
+          <article class="card">
+            <div class="card-header">
+              <h2>Add Client</h2>
+            </div>
+            <form id="clientForm" class="form-grid">
+              <label>Full Name <input name="fullName" required /></label>
+              <label>Address Line 1 <input name="addressLine1" placeholder="Street, building, area" required /></label>
+              <label>Address Line 2 <input name="addressLine2" placeholder="Apartment, floor, city, state" /></label>
+              <label>Email <input type="email" name="email" required /></label>
+              <label>Phone Number <input name="phone" required /></label>
+              <button type="submit" class="primary">Save Client</button>
+            </form>
+          </article>
+
+          <article class="card">
+            <div class="card-header">
+              <h2>Client List</h2>
+              <input id="clientSearch" placeholder="Search name, email, ref..." />
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Ref</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="clientsBody"></tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="orders" class="panel">
+        <article class="card">
+          <div class="card-header">
+            <h2>Create Transfer Order</h2>
+          </div>
+          <form id="orderForm" class="form-grid order-grid">
+            <label>
+              Client
+              <select name="clientId" id="clientSelect" required></select>
+            </label>
+            <div class="muted" id="selectedClientInfo">Select a client to load details.</div>
+
+            <label>
+              Send Country
+              <select name="sendCountry" id="sendCountry" required></select>
+            </label>
+            <label>
+              Receive Country
+              <select name="receiveCountry" id="receiveCountry" required></select>
+            </label>
+
+            <label>
+              Send Amount
+              <input type="number" name="sendAmount" min="0.01" step="0.01" required />
+            </label>
+
+            <label>
+              Manual Exchange Rate
+              <input type="number" name="manualRate" min="0.000001" step="0.000001" required />
+            </label>
+
+            <label>
+              Payment Method
+              <select name="paymentMethod" required>
+                <option value="">Choose method</option>
+                <option>Zelle</option>
+                <option>Cash App</option>
+                <option>Cash</option>
+              </select>
+            </label>
+
+            <label>
+              Proof of Payment
+              <input type="file" name="proof" id="proofFile" accept="image/*" required />
+            </label>
+
+            <label>
+              Receiver Full Name
+              <input name="receiverName" placeholder="Receiver legal name" required />
+            </label>
+
+            <label>
+              Receiver Contact Type
+              <select name="receiverContactType" id="receiverContactType" required>
+                <option value="">Choose contact option</option>
+                <option value="phone">Phone Number</option>
+                <option value="bank">Bank Account</option>
+              </select>
+            </label>
+
+            <label id="receiverPhoneField">
+              Receiver Phone Number
+              <input name="receiverPhone" placeholder="Receiver phone" />
+            </label>
+
+            <label id="receiverBankField">
+              Receiver Bank Account
+              <input name="receiverBankAccount" placeholder="Account / IBAN / wallet" />
+            </label>
+
+            <label>
+              Note
+              <textarea name="note" rows="3" placeholder="Optional internal note"></textarea>
+            </label>
+
+            <div class="result-box" id="ratePreview">Set countries and amount to preview conversion.</div>
+
+            <button class="primary" type="submit">Submit Transfer</button>
+          </form>
+        </article>
+      </section>
+
+    </main>
+
+    <dialog id="profileDialog">
+      <article class="dialog-card">
+        <header>
+          <h2 id="profileName"></h2>
+          <button id="closeDialog">Close</button>
+        </header>
+        <p id="profileMeta"></p>
+        <h3>Transaction History</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Order Ref</th>
+                <th>Route</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </article>
+    </dialog>
+
+    <template id="emptyRowTemplate">
+      <tr><td colspan="7" class="muted">No records yet.</td></tr>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
