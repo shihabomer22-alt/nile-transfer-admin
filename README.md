@@ -7,6 +7,7 @@ A professional starter web app for internal money-transfer operations.
 - Client management with required fields:
   - Full name
   - **Full address**
+  - Address
   - Email
   - Phone number
 - Automatic client reference code generation (`NTC-0001`, ...)
@@ -19,6 +20,11 @@ A professional starter web app for internal money-transfer operations.
   - **Receiver details**: name + choose phone number **or** bank account
   - **Proof of payment image upload**
   - Internal note field
+  - Transfer amount and auto conversion preview
+  - Payment methods: Zelle, Cash App, Cash
+  - Proof of payment field
+  - Internal note field
+- Admin-managed exchange rates by direction (e.g. USD→EGP)
 - Transaction status updates (Pending, Processing, Completed, Cancelled)
 - Full transaction history inside each client profile
 - Dashboard counters for quick operations view
@@ -26,6 +32,7 @@ A professional starter web app for internal money-transfer operations.
 ## How to run
 
 Because this is a static app, run it with a simple local server:
+Because this is a static app, you can run it with any simple local server:
 
 ```bash
 python3 -m http.server 4173
@@ -62,3 +69,24 @@ If you need shared data for your whole team from all devices, Phase 2 should add
 - backend API + database
 - authentication and user roles
 - secure file storage for uploaded proof images
+1. Go to **Exchange Rates** and add rates for required directions.
+2. Go to **Clients** and add a new client.
+3. Go to **New Transfer** and:
+   - pick the client
+   - choose send/receive countries
+   - enter amount and payment details
+   - submit transfer
+4. Go to **Dashboard** to update transaction status.
+5. Go to **Clients → Profile** to review full history of that client.
+
+## Current storage
+
+Data is saved in browser `localStorage` for quick internal demo and MVP usage.
+
+If you want, next step we can build **Phase 2** with:
+- secure login
+- SQL database
+- multi-user roles (admin / operator)
+- file uploads for payment proof
+- printable receipts and reports
+- backup/export to CSV/PDF
