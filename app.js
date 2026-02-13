@@ -149,7 +149,7 @@
         return [];
       }
     }
-    return [s];
+    return s.includes("|") ? s.split("|").filter(Boolean) : [s];
   }
 
   // --- DB: Clients
@@ -290,13 +290,14 @@
         btn.classList.add("active");
 
         const tab = btn.dataset.tab;
-        const tabs = ["dashboard", "clients", "newTransfer", "rates"];
+        const tabs = ["dashboard", "transfers", "clients", "newTransfer", "rates"];
         tabs.forEach((t) => {
           const el = $("tab-" + t);
           if (el) el.style.display = t === tab ? "block" : "none";
         });
 
         if (tab === "dashboard") reloadDashboard();
+        if (tab === "transfers") reloadDashboard();
         if (tab === "clients") reloadClientsUI();
         if (tab === "rates") reloadRatesUI();
       });
@@ -906,7 +907,7 @@
       const proofFiles = Array.from($("tProof").files || []);
       if (proofFiles.length) {
         const paths = await uploadProofs(proofFiles, created.id);
-        await updateTransfer(created.id, { proof_path: JSON.stringify(paths) });
+        await updateTransfer(created.id, { proof_path: paths.join("|") });
       }
 
       // reset
