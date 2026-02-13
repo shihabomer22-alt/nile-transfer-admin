@@ -6,18 +6,88 @@
   <title>Nile Transfer Admin</title>
   <link rel="stylesheet" href="./styles.css" />
 
-  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <!-- Put your keys here -->
   <script>
+    // ضع بيانات Supabase هنا
     window.__SUPABASE_URL__ = "https://vytkducxcqzzbjezuamj.supabase.co";
-    window.__SUPABASE_ANON_KEY__ = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5dGtkdWN4Y3F6emJqZXp1YW1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjE1NjcsImV4cCI6MjA4NjQzNzU2N30.wkfv4pfHpFjmn8QAUw7OCburFTjh3pU3C9Y7V_8Wy1w";
+    window.__SUPABASE_ANON_KEY__ = "PASTE_YOUR_ANON_KEY_HERE";
   </script>
 </head>
 
 <body>
-  
+  <div class="wrap">
+
+    <!-- Header -->
+    <header class="top">
+      <div class="brand">
+        <img src="./assets/logo.png" alt="Nile Transfer" />
+        <div>
+          <h1>Nile Transfer Admin</h1>
+          <div class="sub">نظام إدارة العملاء والمعاملات وسعر الصرف ورفع الإثبات</div>
+        </div>
+      </div>
+
+      <div class="right">
+        <span class="badge" id="whoami" style="display:none"></span>
+        <button class="btn ghost" id="btnLogout" style="display:none">Logout</button>
+      </div>
+    </header>
+
+    <!-- Login -->
+    <section class="card" id="loginCard">
+      <h2 class="h2">تسجيل دخول الإدارة</h2>
+      <div class="grid">
+        <div class="field">
+          <label>الإيميل</label>
+          <input id="loginEmail" type="email" placeholder="admin@email.com" />
+        </div>
+        <div class="field">
+          <label>كلمة المرور</label>
+          <input id="loginPassword" type="password" placeholder="••••••••" />
+        </div>
+        <div class="field full">
+          <button class="btn primary" id="btnLogin">Login</button>
+          <div class="msg" id="loginMsg" style="display:none"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- App -->
+    <section id="app" style="display:none">
+      <div class="card">
+        <div class="tabs">
+          <button class="tab active" data-tab="dashboard">Dashboard</button>
+          <button class="tab" data-tab="clients">Customers</button>
+          <button class="tab" data-tab="newTransfer">New Transfer</button>
+          <button class="tab" data-tab="rates">Exchange Rates</button>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="tab-dashboard" style="display:block">
+          <div class="kpi">
+            <div class="box">
+              <div class="t">Total Clients</div>
+              <div class="v" id="kpiClients">0</div>
+            </div>
+            <div class="box">
+              <div class="t">Total Transfers</div>
+              <div class="v" id="kpiTransfers">0</div>
+            </div>
+            <div class="box">
+              <div class="t">Pending</div>
+              <div class="v" id="kpiPending">0</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="sectionRow">
+            <div class="sectionTitle">كل المعاملات</div>
+            <div class="rowActions">
+              <span class="badge" id="dashCount">0</span>
+              <button id="btnReloadDashboard" class="btn">Reload</button>
+            </div>
+          </div>
 
           <div class="grid">
             <div class="field third">
@@ -30,6 +100,7 @@
                 <option value="Cancelled">Cancelled</option>
               </select>
             </div>
+
             <div class="field full">
               <label>بحث سريع (Order / Client / Route)</label>
               <input id="dashSearch" placeholder="ابحث..." />
@@ -53,8 +124,7 @@
           </table>
 
           <div class="msg" id="dashMsg" style="display:none"></div>
-
-</div>
+        </div>
 
         <!-- Clients -->
         <div id="tab-clients" style="display:none">
@@ -146,7 +216,6 @@
             <div class="sectionRow">
               <div class="sectionTitle" id="clientFileTitle">Customer file</div>
               <div class="rowActions">
-                <button class="btn" id="btnEditFromFile">Edit client</button>
                 <button class="btn ghost" id="btnCloseClientFile">Close</button>
               </div>
             </div>
@@ -179,7 +248,6 @@
             </div>
           </div>
 
-          <!-- Client autocomplete -->
           <div class="grid">
             <div class="field full">
               <label>Search client (name / email / phone / code)</label>
@@ -257,7 +325,6 @@
             <div class="field full">
               <label>Proof of transfer (optional) — multiple files</label>
               <input id="tProof" type="file" multiple accept="image/*,application/pdf" />
-              <div class="hint">تقدر ترفع أكثر من صورة/ملف PDF (اختياري).</div>
             </div>
 
             <div class="field full">
@@ -311,6 +378,7 @@
             <tbody id="ratesTbody"></tbody>
           </table>
         </div>
+
       </div>
     </section>
 
@@ -342,7 +410,6 @@
         <div class="field">
           <label>Add proof files (optional)</label>
           <input id="detailsProofFiles" type="file" multiple accept="image/*,application/pdf" />
-          <div class="help">You can upload multiple images or PDFs.</div>
         </div>
       </div>
 
