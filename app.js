@@ -54,13 +54,7 @@
   };
 
   const SUPABASE_URL = normalizeSupabaseUrl(window.__SUPABASE_URL__);
-  const normalizeAnonKey = (key) => {
-    // If user pasted key + URL together, keep only the first token
-    const k = String(key || "").trim();
-    return k.split(/\s+/)[0] || "";
-  };
-
-  const SUPABASE_ANON_KEY = normalizeAnonKey(window.__SUPABASE_ANON_KEY__);
+  const SUPABASE_ANON_KEY = String(window.__SUPABASE_ANON_KEY__ || "").trim();
 
   if (!SUPABASE_URL || !/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(SUPABASE_URL)) {
     alert(
@@ -277,7 +271,7 @@
         btn.classList.add("active");
 
         const tab = btn.dataset.tab;
-        const tabs = ["dashboard", "clients", "newTransfer", "rates"];
+        const tabs = ["dashboard", "clients", "newTransfer", "transfers", "rates"];
         tabs.forEach((t) => {
           const el = $("tab-" + t);
           if (el) el.style.display = t === tab ? "block" : "none";
@@ -285,6 +279,7 @@
 
         if (tab === "dashboard") reloadDashboard();
         if (tab === "clients") reloadClientsUI();
+        if (tab === "transfers") reloadTransfersUI();
         if (tab === "rates") reloadRatesUI();
       });
     });
@@ -305,7 +300,6 @@
 
   // --- Client autocomplete (New Transfer)
   let CLIENTS_CACHE = [];
-  let CURRENT_DETAILS_TRANSFER = null;
 
   function attachClientAutocomplete() {
     const box = $("clientAutoBox");
@@ -541,14 +535,8 @@
 
   // --- Transfer details modal
   function openTransferDetails(t, clientRowMaybe) {
-    CURRENT_DETAILS_TRANSFER = t;
     $("detailsModal").style.display = "flex";
     $("detailsTitle").textContent = `Transfer: ${t.order_ref || ""}`;
-
-    // reset update controls
-    if ($("detailsStatus")) $("detailsStatus").value = t.status || "Pending";
-    if ($("detailsProofFiles")) $("detailsProofFiles").value = "";
-    if ($("detailsMsg")) $("detailsMsg").textContent = "";
 
     const body = $("detailsBody");
     const clientName = clientRowMaybe?.full_name || t.clients?.full_name || "";
@@ -556,7 +544,7 @@
 
     body.innerHTML = `
       <div class="field third"><label>Order</label><input disabled value="${escapeHtml(t.order_ref || "")}"/></div>
-      <div class="field third"><label>Current status</label><input disabled value="${escapeHtml(t.status || "")}"/></div>
+      <div class="field third"><label>Status</label><input disabled value="${escapeHtml(t.status || "")}"/></div>
       <div class="field third"><label>Payment</label><input disabled value="${escapeHtml(t.payment_method || "")}"/></div>
 
       <div class="field full"><label>Client</label>
@@ -582,11 +570,8 @@
       </div>
     `;
 
-    renderProofButtons(t.proof_path);
-  }
-
-  function renderProofButtons(proof_path) {
-    const proofs = parseProofPaths(proof_path);
+    // proofs
+    const proofs = parseProofPaths(t.proof_path);
     const proofBox = $("detailsProofs");
     proofBox.innerHTML = proofs.length
       ? proofs
@@ -606,103 +591,81 @@
     });
   }
 
-  async function saveTransferDetails() {
-    const t = CURRENT_DETAILS_TRANSFER;
-    if (!t) return;
-
-    const newStatus = $("detailsStatus")?.value || t.status || "Pending";
-    const files = $("detailsProofFiles")?.files ? Array.from($("detailsProofFiles").files) : [];
-
-    $("btnSaveDetails").disabled = true;
-    $("detailsMsg").textContent = "Saving...";
-
-    try {
-      let nextProofPaths = parseProofPaths(t.proof_path);
-
-      if (files.length) {
-        const uploaded = await uploadProofs(files, t.id);
-        nextProofPaths = [...nextProofPaths, ...uploaded];
-      }
-
-      const payload = {
-        status: newStatus,
-        proof_path: nextProofPaths.length ? nextProofPaths.join("|") : null,
-      };
-
-      await updateTransfer(t.id, payload);
-
-      // update local current transfer
-      CURRENT_DETAILS_TRANSFER = { ...t, ...payload };
-
-      $("detailsMsg").textContent = "Saved ✓";
-      renderProofButtons(payload.proof_path);
-
-      // refresh the dashboard list
-      await reloadDashboard();
-    } catch (e) {
-      console.error(e);
-      $("detailsMsg").textContent = e?.message || "Failed to save";
-      alert(e?.message || "Failed to save");
-    } finally {
-      $("btnSaveDetails").disabled = false;
-    }
-  }
-
   function closeTransferDetails() {
-    CURRENT_DETAILS_TRANSFER = null;
     $("detailsModal").style.display = "none";
     $("detailsBody").innerHTML = "";
     $("detailsProofs").innerHTML = "";
-    if ($("detailsMsg")) $("detailsMsg").textContent = "";
-    if ($("detailsProofFiles")) $("detailsProofFiles").value = "";
   }
 
-  // (Transfers tab removed — Dashboard shows all transfers)
+  // --- Transfers UI
+  async function reloadTransfersUI() {
+    const status = $("filterStatus")?.value || "";
+    const rows = await listTransfers({ status, limit: 300 });
 
-  // --- Dashboard
-  async function reloadDashboard() {
-    // KPIs (overall)
-    const [clients, allTransfers] = await Promise.all([
-      listClients().catch(() => []),
-      listTransfers({ status: "", limit: 500 }).catch(() => []),
-    ]);
+    // KPI
+    $("kpiTransfers").textContent = String(rows.length);
+    $("kpiPending").textContent = String(rows.filter((x) => x.status === "Pending").length);
 
-    $("kpiClients").textContent = String(clients.length);
-    $("kpiTransfers").textContent = String(allTransfers.length);
-    $("kpiPending").textContent = String(allTransfers.filter((t) => t.status === "Pending").length);
-
-    // Table (filter)
-    const filter = $("filterStatus") ? $("filterStatus").value : "";
-    const rows = filter ? allTransfers.filter((t) => t.status === filter) : allTransfers;
-
-    $("dashTransfersTbody").innerHTML = rows
-      .slice(0, 300)
+    const tbody = $("transfersTbody");
+    tbody.innerHTML = rows
       .map((t) => {
-        const proofCount = parseProofPaths(t.proof_path).length;
+        const proofs = parseProofPaths(t.proof_path);
+        const proofCount = proofs.length ? `${proofs.length} file(s)` : "—";
         return `
           <tr>
             <td>${escapeHtml(t.order_ref || "")}</td>
             <td>${escapeHtml(t.clients?.full_name || "")}</td>
             <td>${escapeHtml(normalizeCountry(t.send_country))} → ${escapeHtml(normalizeCountry(t.receive_country))}</td>
             <td>${Number(t.send_amount || 0).toFixed(2)} ${escapeHtml(t.send_currency || "")}</td>
-            <td>${renderStatusBadge(t.status || "")}</td>
-            <td><span class="badge">${proofCount ? proofCount + " file(s)" : "None"}</span></td>
-            <td><button class="btn" data-open-transfer="${escapeHtml(t.id)}">Details</button></td>
-          </tr>
-        `;
+            <td><span class="status ${escapeHtml(t.status)}">${escapeHtml(t.status)}</span></td>
+            <td>${escapeHtml(proofCount)}</td>
+            <td><button class="btn" data-details="${t.id}">Details</button></td>
+          </tr>`;
       })
       .join("");
 
-    document.querySelectorAll("button[data-open-transfer]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.getAttribute("data-open-transfer");
-        const t = rows.find((x) => x.id === id) || allTransfers.find((x) => x.id === id);
+    document.querySelectorAll("#transfersTbody button[data-details]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-details");
+        const t = rows.find((x) => x.id === id);
         if (t) openTransferDetails(t, null);
       });
     });
   }
 
-  // --- Rates UI  // --- Rates UI
+  // --- Dashboard
+  async function reloadDashboard() {
+    const rows = await listTransfers({ status: "", limit: 20 });
+    $("dashTransfersTbody").innerHTML = rows
+      .slice(0, 8)
+      .map((t) => {
+        return `
+          <tr>
+            <td>${escapeHtml(t.order_ref || "")}</td>
+            <td>${escapeHtml(t.clients?.full_name || "")}</td>
+            <td>${escapeHtml(normalizeCountry(t.send_country))} → ${escapeHtml(normalizeCountry(t.receive_country))}</td>
+            <td>${Number(t.send_amount || 0).toFixed(2)} ${escapeHtml(t.send_currency || "")}</td>
+            <td><span class="status ${escapeHtml(t.status)}">${escapeHtml(t.status)}</span></td>
+            <td><button class="btn" data-details="${t.id}">Details</button></td>
+          </tr>`;
+      })
+      .join("");
+
+    document.querySelectorAll("#dashTransfersTbody button[data-details]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-details");
+        const t = rows.find((x) => x.id === id);
+        if (t) openTransferDetails(t, null);
+      });
+    });
+
+    // update KPIs from caches if available
+    $("kpiClients").textContent = String(CLIENTS_CACHE.length || 0);
+    $("kpiTransfers").textContent = String(rows.length || 0);
+    $("kpiPending").textContent = String(rows.filter((x) => x.status === "Pending").length);
+  }
+
+  // --- Rates UI
   async function reloadRatesUI() {
     const rows = await listRates();
     $("ratesTbody").innerHTML = rows
@@ -911,6 +874,7 @@
 
       showMsg(msg, `تم حفظ التحويلة ✅ Order: ${order_ref}`);
 
+      await reloadTransfersUI();
       await reloadDashboard();
     } catch (e) {
       showMsg(msg, e.message || "فشل حفظ التحويلة");
@@ -930,6 +894,7 @@
     CLIENTS_CACHE = await listClients();
     await reloadDashboard();
     await reloadClientsUI();
+    await reloadTransfersUI();
     await reloadRatesUI();
   }
 
@@ -988,8 +953,8 @@
     $("tReceiveCountry").addEventListener("change", () => updateReceivePreview().catch(() => {}));
 
     // transfers filter
-    $("filterStatus").addEventListener("change", () => reloadDashboard().catch(() => {}));
-    $("btnReloadTransfers").addEventListener("click", () => reloadDashboard().catch((e) => alert(e.message)));
+    $("filterStatus").addEventListener("change", () => reloadTransfersUI().catch(() => {}));
+    $("btnReloadTransfers").addEventListener("click", () => reloadTransfersUI().catch((e) => alert(e.message)));
 
     // rates
     $("btnSaveRate").addEventListener("click", () => onSaveRate().catch((e) => alert(e.message)));
@@ -997,7 +962,6 @@
 
     // modal
     $("btnCloseDetails").addEventListener("click", closeTransferDetails);
-    if ($("btnSaveDetails")) $("btnSaveDetails").addEventListener("click", () => saveTransferDetails().catch((e) => alert(e.message)));
     $("detailsModal").addEventListener("click", (e) => {
       if (e.target.id === "detailsModal") closeTransferDetails();
     });
