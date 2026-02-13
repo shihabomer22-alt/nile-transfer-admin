@@ -159,7 +159,7 @@
         return [];
       }
     }
-    return s.includes("|") ? s.split("|").filter(Boolean) : [s];
+    return s.includes("|") ? s.split("|").dashFilter(Boolean) : [s];
   }
 
   // --- DB: Clients
@@ -378,7 +378,7 @@
     const filterClients = (q) => {
       const s = q.trim().toLowerCase();
       if (!s) return [];
-      return CLIENTS_CACHE.filter((c) => {
+      return CLIENTS_CACHE.dashFilter((c) => {
         const code = String(getCode(c) || "").toLowerCase();
         return (
           String(c.full_name || "").toLowerCase().includes(s) ||
@@ -443,7 +443,7 @@
 
     const filtered = !q
       ? CLIENTS_CACHE
-      : CLIENTS_CACHE.filter((c) => {
+      : CLIENTS_CACHE.dashFilter((c) => {
           const code = String(c.client_code || "").toLowerCase();
           return (
             String(c.full_name || "").toLowerCase().includes(q) ||
@@ -692,17 +692,17 @@
 
     $("kpiClients").textContent = String(clients.length);
     $("kpiTransfers").textContent = String(allTransfers.length);
-    $("kpiPending").textContent = String(allTransfers.filter((t) => t.status === "Pending").length);
+    $("kpiPending").textContent = String(allTransfers.dashFilter((t) => t.status === "Pending").length);
 
-    // Table (filter)
+    // Table (dashFilter)
     const dashFilter = $("filterStatus") ? $("filterStatus").value : "";
-    const rows = filter ? allTransfers.filter((t) => t.status === filter) : allTransfers;
+    const rows = dashFilter ? allTransfers.dashFilter((t) => t.status === dashFilter) : allTransfers;
 
-    // Search + filter
+    // Search + dashFilter
     
     const q = ($("dashSearch")?.value || "").trim().toLowerCase();
 
-    const filtered = allTransfers.filter((t) => {
+    const filtered = allTransfers.dashFilter((t) => {
       if (dashFilter && String(t.status || "") !== dashFilter) return false;
 
       if (!q) return true;
@@ -1007,7 +1007,7 @@
     setupReceiverToggle();
     attachClientAutocomplete();
 
-    // dashboard search/filter
+    // dashboard search/dashFilter
     
     if ($("dashSearch")) $("dashSearch").addEventListener("input", () => reloadDashboard().catch(() => {}));
 
