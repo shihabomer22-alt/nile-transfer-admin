@@ -189,3 +189,9 @@ textarea{min-height:90px;resize:vertical}
   .field{grid-column:span 12}
   .field.third,.field.quarter{grid-column:span 12}
 }
+
+.divider{height:1px;background:var(--border);margin:14px 0}
+
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}
+
+.help{font-size:12px;color:var(--muted);margin-top:6px;font-weight:700}
