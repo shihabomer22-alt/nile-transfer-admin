@@ -195,3 +195,5 @@ textarea{min-height:90px;resize:vertical}
 .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}
 
 .help{font-size:12px;color:var(--muted);margin-top:6px;font-weight:700}
+
+.table select{padding:8px 10px;border-radius:12px}
