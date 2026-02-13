@@ -1,45 +1,43 @@
 (() => {
-  // Prevent double-init if the script runs twice
+  // Prevent double init
   if (window.__NILE_ADMIN_INITED__) return;
   window.__NILE_ADMIN_INITED__ = true;
 
-  // --- Helpers ---
   const $ = (id) => document.getElementById(id);
 
-  function escapeHtml(s) {
-    return String(s ?? "")
+  const escapeHtml = (s) =>
+    String(s ?? "")
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
-  }
 
-  // --- Countries (your requested options) ---
+  // ---- Countries (Fix America -> USA) ----
   const COUNTRIES = [
     { label: "مصر", value: "Egypt", currency: "EGP" },
     { label: "السودان", value: "Sudan", currency: "SDG" },
-    { label: "امريكا", value: "USA", currency: "USD" },
+    { label: "USA", value: "USA", currency: "USD" },         // ✅ changed
     { label: "دول الخليج", value: "Gulf", currency: "AED" },
   ];
 
-  function countryByValue(v) {
-    return COUNTRIES.find((c) => c.value === v) || null;
-  }
+  // For old data compatibility: convert "America" to "USA"
+  const normalizeCountry = (v) => (v === "America" ? "USA" : v);
 
-  // ✅ FIX: This function MUST exist (your error)
-  function fillCountrySelect(selectElement) {
-    if (!selectElement) return;
-    selectElement.innerHTML = "";
+  const countryByValue = (v) => COUNTRIES.find((c) => c.value === normalizeCountry(v)) || null;
+
+  function fillCountrySelect(selectEl) {
+    if (!selectEl) return;
+    selectEl.innerHTML = "";
     for (const c of COUNTRIES) {
       const opt = document.createElement("option");
       opt.value = c.value;
       opt.textContent = c.label;
-      selectElement.appendChild(opt);
+      selectEl.appendChild(opt);
     }
   }
 
-  // --- Supabase client (safe reuse) ---
+  // ---- Supabase client ----
   if (!window.supabase) {
     alert("Supabase library not loaded. Check index.html script order.");
     return;
@@ -56,7 +54,13 @@
       window.__SUPABASE_ANON_KEY__
     ));
 
-  // --- Auth ---
+  // ---- Auth ----
+  async function getSession() {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    return data.session;
+  }
+
   async function signIn(email, password) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
@@ -67,13 +71,16 @@
     if (error) throw error;
   }
 
-  async function getSession() {
-    const { data, error } = await supabase.auth.getSession();
+  // ---- DB ----
+  async function listClients() {
+    const { data, error } = await supabase
+      .from("clients")
+      .select("*")
+      .order("created_at", { ascending: false });
     if (error) throw error;
-    return data.session;
+    return data || [];
   }
 
-  // --- DB ---
   async function createClient({ full_name, phone, email }) {
     const { data, error } = await supabase
       .from("clients")
@@ -84,13 +91,14 @@
     return data;
   }
 
-  async function listClients() {
+  async function listRates() {
     const { data, error } = await supabase
-      .from("clients")
+      .from("exchange_rates")
       .select("*")
+      .eq("active", true)
       .order("created_at", { ascending: false });
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async function upsertRate({ from_country, to_country, from_currency, to_currency, rate }) {
@@ -104,22 +112,12 @@
     return data;
   }
 
-  async function listRates() {
-    const { data, error } = await supabase
-      .from("exchange_rates")
-      .select("*")
-      .eq("active", true)
-      .order("created_at", { ascending: false });
-    if (error) throw error;
-    return data;
-  }
-
   async function getRate({ from_country, to_country, from_currency, to_currency }) {
     const { data, error } = await supabase
       .from("exchange_rates")
       .select("rate")
-      .eq("from_country", from_country)
-      .eq("to_country", to_country)
+      .eq("from_country", normalizeCountry(from_country))
+      .eq("to_country", normalizeCountry(to_country))
       .eq("from_currency", from_currency)
       .eq("to_currency", to_currency)
       .eq("active", true)
@@ -129,11 +127,11 @@
   }
 
   async function createTransfer(row) {
-    const { data, error } = await supabase
-      .from("transfers")
-      .insert([row])
-      .select()
-      .single();
+    // normalize old America value
+    row.send_country = normalizeCountry(row.send_country);
+    row.receive_country = normalizeCountry(row.receive_country);
+
+    const { data, error } = await supabase.from("transfers").insert([row]).select().single();
     if (error) throw error;
     return data;
   }
@@ -155,7 +153,7 @@
 
     const { data, error } = await q;
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async function listTransfersByClient(clientId) {
@@ -165,15 +163,25 @@
       .eq("client_id", clientId)
       .order("created_at", { ascending: false });
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
+  // ---- Proof upload (multiple) ----
   async function uploadProof(file, transferId) {
     const ext = (file.name.split(".").pop() || "png").toLowerCase();
-    const path = `${transferId}/${Date.now()}.${ext}`;
+    const path = `${transferId}/${Date.now()}-${Math.floor(Math.random() * 100000)}.${ext}`;
     const { error } = await supabase.storage.from("proofs").upload(path, file, { upsert: false });
     if (error) throw error;
     return path;
+  }
+
+  async function uploadProofs(files, transferId) {
+    const paths = [];
+    for (const f of files) {
+      const p = await uploadProof(f, transferId);
+      paths.push(p);
+    }
+    return paths;
   }
 
   async function getSignedProofUrl(path) {
@@ -182,7 +190,22 @@
     return data.signedUrl;
   }
 
-  // --- UI / Tabs ---
+  function parseProofPaths(proof_path) {
+    if (!proof_path) return [];
+    // support old single path OR JSON array string
+    const s = String(proof_path);
+    if (s.trim().startsWith("[")) {
+      try {
+        const arr = JSON.parse(s);
+        return Array.isArray(arr) ? arr : [];
+      } catch {
+        return [];
+      }
+    }
+    return [s];
+  }
+
+  // ---- Tabs ----
   function setupTabs() {
     document.querySelectorAll(".tab").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -208,58 +231,130 @@
 
     document.querySelectorAll('input[name="rcType"]').forEach((r) => {
       r.addEventListener("change", () => {
-        const v = document.querySelector('input[name="rcType"]:checked').value;
+        const v = document.querySelector('input[name="rcType"]:checked')?.value || "phone";
         if (phoneBox) phoneBox.style.display = v === "phone" ? "block" : "none";
         if (bankBox) bankBox.style.display = v === "bank" ? "block" : "none";
       });
     });
   }
 
-  async function reloadClients() {
-    const rows = await listClients();
-    const search = ($("clientSearch")?.value || "").trim().toLowerCase();
+  // ---- Client autocomplete (search + suggestions) ----
+  let CLIENTS_CACHE = [];
 
-    const filtered = !search
-      ? rows
-      : rows.filter((r) =>
-          (r.full_name || "").toLowerCase().includes(search) ||
-          (r.phone || "").toLowerCase().includes(search) ||
-          (r.email || "").toLowerCase().includes(search)
+  function getClientCode(row) {
+    // try common fields; if none exist, fall back to id
+    return row.client_code || row.reference_code || row.code || row.customer_code || row.id;
+  }
+
+  function attachClientAutocomplete() {
+    const box = $("clientAutoBox");
+    const input = $("tClientSearch");
+    const hidden = $("tClient"); // hidden holds client_id
+    const sug = $("clientSuggestions");
+
+    if (!input || !hidden || !sug) return;
+
+    const render = (items) => {
+      sug.innerHTML = "";
+      if (!items.length) {
+        sug.style.display = "none";
+        return;
+      }
+      for (const c of items.slice(0, 8)) {
+        const code = getClientCode(c);
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.innerHTML = `
+          <div><strong>${escapeHtml(c.full_name || "")}</strong></div>
+          <span class="small">
+            ${escapeHtml(c.email || "")}${c.email ? " • " : ""}
+            ${escapeHtml(c.phone || "")}${c.phone ? " • " : ""}
+            Code: ${escapeHtml(code)}
+          </span>
+        `;
+        btn.addEventListener("click", () => {
+          hidden.value = c.id;
+          input.value = `${c.full_name || ""} (${code})`;
+          sug.style.display = "none";
+          sug.innerHTML = "";
+        });
+        sug.appendChild(btn);
+      }
+      sug.style.display = "block";
+    };
+
+    const filterClients = (q) => {
+      const s = q.trim().toLowerCase();
+      if (!s) return [];
+      return CLIENTS_CACHE.filter((c) => {
+        const code = String(getClientCode(c) || "").toLowerCase();
+        return (
+          String(c.full_name || "").toLowerCase().includes(s) ||
+          String(c.email || "").toLowerCase().includes(s) ||
+          String(c.phone || "").toLowerCase().includes(s) ||
+          code.includes(s)
         );
+      });
+    };
 
+    input.addEventListener("input", () => {
+      // if user starts typing, clear old selected id until they choose
+      hidden.value = "";
+      render(filterClients(input.value));
+    });
+
+    // hide suggestions when clicking outside
+    document.addEventListener("click", (e) => {
+      if (!box.contains(e.target)) {
+        sug.style.display = "none";
+      }
+    });
+  }
+
+  // ---- UI reloads ----
+  async function reloadClients() {
+    CLIENTS_CACHE = await listClients();
+
+    // clients table list (optional)
     const tbody = $("clientsTbody");
     if (tbody) {
+      const search = ($("clientSearch")?.value || "").trim().toLowerCase();
+      const filtered = !search
+        ? CLIENTS_CACHE
+        : CLIENTS_CACHE.filter((r) => {
+            const code = String(getClientCode(r) || "").toLowerCase();
+            return (
+              (r.full_name || "").toLowerCase().includes(search) ||
+              (r.phone || "").toLowerCase().includes(search) ||
+              (r.email || "").toLowerCase().includes(search) ||
+              code.includes(search)
+            );
+          });
+
       tbody.innerHTML = filtered
-        .map(
-          (r) => `
+        .map((r) => {
+          const code = getClientCode(r);
+          return `
           <tr>
             <td>${escapeHtml(r.full_name)}</td>
             <td>${escapeHtml(r.phone || "")}</td>
             <td>${escapeHtml(r.email || "")}</td>
-            <td><button class="btn ghost" data-open-client="${r.id}">فتح</button></td>
-          </tr>`
-        )
+            <td>${escapeHtml(code)}</td>
+            <td><button class="btn" data-open-client="${r.id}">فتح</button></td>
+          </tr>`;
+        })
         .join("");
-    }
 
-    const clientSelect = $("tClient");
-    if (clientSelect) {
-      clientSelect.innerHTML = rows
-        .map(
-          (r) =>
-            `<option value="${r.id}">${escapeHtml(r.full_name)}${
-              r.phone ? " - " + escapeHtml(r.phone) : ""
-            }</option>`
-        )
-        .join("");
-    }
-
-    document.querySelectorAll("button[data-open-client]").forEach((b) => {
-      b.addEventListener("click", async () => {
-        const id = b.getAttribute("data-open-client");
-        await openClientFile(id, rows.find((x) => x.id === id));
+      document.querySelectorAll("button[data-open-client]").forEach((b) => {
+        b.addEventListener("click", async () => {
+          const id = b.getAttribute("data-open-client");
+          await openClientFile(id, CLIENTS_CACHE.find((x) => x.id === id));
+        });
       });
-    });
+    }
+
+    // refresh autocomplete suggestions source
+    attachClientAutocomplete();
   }
 
   async function openClientFile(clientId, clientRow) {
@@ -273,16 +368,20 @@
     if (!tbody) return;
 
     tbody.innerHTML = rows
-      .map(
-        (r) => `
+      .map((r) => {
+        const proofs = parseProofPaths(r.proof_path);
+        const proofBtns = proofs
+          .map((p, i) => `<button class="btn" data-proof="${escapeHtml(p)}">إثبات ${i + 1}</button>`)
+          .join(" ");
+        return `
         <tr>
           <td>${escapeHtml(r.order_ref)}</td>
-          <td>${escapeHtml(r.send_country)} → ${escapeHtml(r.receive_country)}</td>
+          <td>${escapeHtml(normalizeCountry(r.send_country))} → ${escapeHtml(normalizeCountry(r.receive_country))}</td>
           <td>${Number(r.send_amount).toFixed(2)} ${escapeHtml(r.send_currency)}</td>
           <td>${escapeHtml(r.status)}</td>
-          <td>${r.proof_path ? `<button class="btn ghost" data-proof="${escapeHtml(r.proof_path)}">فتح</button>` : ""}</td>
-        </tr>`
-      )
+          <td>${proofBtns}</td>
+        </tr>`;
+      })
       .join("");
 
     document.querySelectorAll("button[data-proof]").forEach((btn) => {
@@ -306,21 +405,26 @@
     if (!tbody) return;
 
     tbody.innerHTML = rows
-      .map(
-        (r) => `
+      .map((r) => {
+        const proofs = parseProofPaths(r.proof_path);
+        const proofBtns = proofs
+          .map((p, i) => `<button class="btn" data-proof="${escapeHtml(p)}">إثبات ${i + 1}</button>`)
+          .join(" ");
+
+        return `
         <tr>
           <td>${escapeHtml(r.order_ref)}</td>
           <td>${escapeHtml(r.clients?.full_name || "")}</td>
-          <td>${escapeHtml(r.send_country)} → ${escapeHtml(r.receive_country)}</td>
+          <td>${escapeHtml(normalizeCountry(r.send_country))} → ${escapeHtml(normalizeCountry(r.receive_country))}</td>
           <td>${Number(r.send_amount).toFixed(2)} ${escapeHtml(r.send_currency)}</td>
           <td>
             <select data-status-id="${r.id}">
               ${["Pending","Processing","Completed","Cancelled"].map((s) => `<option value="${s}" ${s===r.status?"selected":""}>${s}</option>`).join("")}
             </select>
           </td>
-          <td>${r.proof_path ? `<button class="btn ghost" data-proof="${escapeHtml(r.proof_path)}">فتح</button>` : ""}</td>
-        </tr>`
-      )
+          <td>${proofBtns}</td>
+        </tr>`;
+      })
       .join("");
 
     document.querySelectorAll('select[data-status-id]').forEach((sel) => {
@@ -356,8 +460,8 @@
       .map(
         (r) => `
         <tr>
-          <td>${escapeHtml(r.from_country)}</td>
-          <td>${escapeHtml(r.to_country)}</td>
+          <td>${escapeHtml(normalizeCountry(r.from_country))}</td>
+          <td>${escapeHtml(normalizeCountry(r.to_country))}</td>
           <td>${escapeHtml(r.from_currency)} → ${escapeHtml(r.to_currency)}</td>
           <td>${Number(r.rate).toFixed(4)}</td>
         </tr>`
@@ -365,6 +469,45 @@
       .join("");
   }
 
+  // ---- Auto calculation (preview) ----
+  async function updateAutoPreview() {
+    const msg = $("newTransferMsg");
+    const send_country = $("tSendCountry")?.value;
+    const receive_country = $("tReceiveCountry")?.value;
+
+    const sendAmount = Number($("tSendAmount")?.value || 0);
+    const manualRateRaw = ($("tRate")?.value || "").trim();
+    const from = countryByValue(send_country);
+    const to = countryByValue(receive_country);
+
+    if (!msg) return;
+
+    if (!from || !to || !sendAmount || sendAmount <= 0) {
+      msg.textContent = "";
+      return;
+    }
+
+    let rate = manualRateRaw ? Number(manualRateRaw) : null;
+    if (!rate || rate <= 0) {
+      // try fetch from saved rates
+      rate = await getRate({
+        from_country: send_country,
+        to_country: receive_country,
+        from_currency: from.currency,
+        to_currency: to.currency,
+      });
+    }
+
+    if (!rate || rate <= 0) {
+      msg.textContent = "اكتب Rate يدوي أو احفظو في Exchange Rates.";
+      return;
+    }
+
+    const receive = sendAmount * rate;
+    msg.textContent = `تحويل تلقائي: ${sendAmount} ${from.currency} × ${rate} = ${receive.toFixed(2)} ${to.currency}`;
+  }
+
+  // ---- Actions ----
   async function onAddClient() {
     const full_name = ($("cName")?.value || "").trim();
     const phone = ($("cPhone")?.value || "").trim();
@@ -394,8 +537,8 @@
 
     try {
       await upsertRate({
-        from_country,
-        to_country,
+        from_country: normalizeCountry(from_country),
+        to_country: normalizeCountry(to_country),
         from_currency: from.currency,
         to_currency: to.currency,
         rate,
@@ -413,7 +556,7 @@
     const msgEl = $("newTransferMsg");
     if (msgEl) msgEl.textContent = "جارٍ الحفظ...";
 
-    const client_id = $("tClient")?.value;
+    const client_id = ($("tClient")?.value || "").trim(); // hidden id
     const send_country = $("tSendCountry")?.value;
     const receive_country = $("tReceiveCountry")?.value;
 
@@ -426,19 +569,19 @@
     const receiver_bank_account = ($("tReceiverBank")?.value || "").trim();
 
     const note = ($("tNote")?.value || "").trim();
-    const proofFile = $("tProof")?.files?.[0] || null;
+    const proofFiles = Array.from($("tProof")?.files || []); // ✅ multiple
 
     const from = countryByValue(send_country);
     const to = countryByValue(receive_country);
 
-    if (!client_id) return msgEl && (msgEl.textContent = "اختار العميل");
+    if (!client_id) return msgEl && (msgEl.textContent = "اكتب العميل واختره من الاقتراحات");
     if (!from || !to) return msgEl && (msgEl.textContent = "اختار البلدان");
     if (!sendAmount || sendAmount <= 0) return msgEl && (msgEl.textContent = "اكتب مبلغ إرسال صحيح");
     if (!receiver_name) return msgEl && (msgEl.textContent = "اكتب اسم المستلم");
     if (rcType === "phone" && !receiver_phone) return msgEl && (msgEl.textContent = "اكتب رقم هاتف المستلم");
     if (rcType === "bank" && !receiver_bank_account) return msgEl && (msgEl.textContent = "اكتب الحساب البنكي");
 
-    let rate = Number($("tRate")?.value);
+    let rate = Number(($("tRate")?.value || "").trim());
     if (!rate || rate <= 0) {
       rate = await getRate({
         from_country: send_country,
@@ -447,7 +590,7 @@
         to_currency: to.currency,
       });
     }
-    if (!rate || rate <= 0) return msgEl && (msgEl.textContent = "مافي سعر صرف. أدخلو يدوي أو احفظو في صفحة أسعار الصرف.");
+    if (!rate || rate <= 0) return msgEl && (msgEl.textContent = "مافي سعر صرف. أدخلو يدوي أو احفظو في Exchange Rates.");
 
     const receive_amount = sendAmount * rate;
     const order_ref = `NTO-${String(Math.floor(Math.random() * 1000000)).padStart(6, "0")}`;
@@ -456,8 +599,8 @@
       const created = await createTransfer({
         order_ref,
         client_id,
-        send_country,
-        receive_country,
+        send_country: normalizeCountry(send_country),
+        receive_country: normalizeCountry(receive_country),
         send_amount: sendAmount,
         send_currency: from.currency,
         receive_amount,
@@ -471,11 +614,13 @@
         status: "Pending",
       });
 
-      if (proofFile) {
-        const proof_path = await uploadProof(proofFile, created.id);
-        await updateTransfer(created.id, { proof_path });
+      if (proofFiles.length) {
+        const paths = await uploadProofs(proofFiles, created.id);
+        // store as JSON array string in proof_path (no DB changes needed)
+        await updateTransfer(created.id, { proof_path: JSON.stringify(paths) });
       }
 
+      // reset
       if ($("tSendAmount")) $("tSendAmount").value = "";
       if ($("tRate")) $("tRate").value = "";
       if ($("tReceiverName")) $("tReceiverName").value = "";
@@ -483,8 +628,12 @@
       if ($("tReceiverBank")) $("tReceiverBank").value = "";
       if ($("tNote")) $("tNote").value = "";
       if ($("tProof")) $("tProof").value = "";
+      if ($("tClientSearch")) $("tClientSearch").value = "";
+      if ($("tClient")) $("tClient").value = "";
 
       if (msgEl) msgEl.textContent = `تم حفظ التحويلة ✅ Order: ${order_ref}`;
+      await reloadTransfers();
+      await reloadClients();
     } catch (e) {
       if (msgEl) msgEl.textContent = e.message || "فشل حفظ التحويلة";
     }
@@ -504,7 +653,7 @@
   }
 
   async function init() {
-    // Fill country selects
+    // countries
     fillCountrySelect($("tSendCountry"));
     fillCountrySelect($("tReceiveCountry"));
     fillCountrySelect($("rFromCountry"));
@@ -513,6 +662,7 @@
     setupTabs();
     setupReceiverToggle();
 
+    // login
     $("btnLogin")?.addEventListener("click", async () => {
       if ($("loginMsg")) $("loginMsg").textContent = "";
       const email = ($("loginEmail")?.value || "").trim();
@@ -530,22 +680,30 @@
       location.reload();
     });
 
+    // client add
     $("btnAddClient")?.addEventListener("click", () => onAddClient().catch((e) => alert(e.message || "Error")));
     $("btnReloadClients")?.addEventListener("click", () => reloadClients().catch((e) => alert(e.message || "Error")));
     $("clientSearch")?.addEventListener("input", () => reloadClients().catch(() => {}));
 
+    // new transfer
     $("btnCreateTransfer")?.addEventListener("click", () => onCreateTransfer().catch((e) => alert(e.message || "Error")));
     $("btnReloadTransfers")?.addEventListener("click", () => reloadTransfers().catch((e) => alert(e.message || "Error")));
     $("filterStatus")?.addEventListener("change", () => reloadTransfers().catch(() => {}));
 
+    // auto calc listeners ✅
+    $("tSendAmount")?.addEventListener("input", () => updateAutoPreview().catch(() => {}));
+    $("tRate")?.addEventListener("input", () => updateAutoPreview().catch(() => {}));
+    $("tSendCountry")?.addEventListener("change", () => updateAutoPreview().catch(() => {}));
+    $("tReceiveCountry")?.addEventListener("change", () => updateAutoPreview().catch(() => {}));
+
+    // rates
     $("btnSaveRate")?.addEventListener("click", () => onSaveRate().catch((e) => alert(e.message || "Error")));
     $("btnReloadRates")?.addEventListener("click", () => reloadRates().catch((e) => alert(e.message || "Error")));
 
+    // session
     const session = await getSession();
     if (session) await afterLogin();
   }
 
-  // Run
   init().catch((e) => alert(e.message || "Init error"));
 })();
-
