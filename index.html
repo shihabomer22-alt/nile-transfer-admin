@@ -6,291 +6,401 @@
   <title>Nile Transfer Admin</title>
   <link rel="stylesheet" href="./styles.css" />
 
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Put your keys here -->
   <script>
-    window.__SUPABASE_URL__ = "https://vytkducxcqzzbjezuamj.supabase.co";
-    window.__SUPABASE_ANON_KEY__ = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5dGtkdWN4Y3F6emJqZXp1YW1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjE1NjcsImV4cCI6MjA4NjQzNzU2N30.wkfv4pfHpFjmn8QAUw7OCburFTjh3pU3C9Y7V_8Wy1w";
+    window.__SUPABASE_URL__ = "PASTE_YOUR_SUPABASE_URL_HERE";
+    window.__SUPABASE_ANON_KEY__ = "PASTE_YOUR_SUPABASE_ANON_KEY_HERE";
   </script>
 </head>
 
 <body>
   <div class="wrap">
+
+    <!-- Header -->
     <header class="top">
       <div class="brand">
-        <!-- لو عندك لوجو في assets خلي المسار صحيح -->
-        <!-- <img src="./assets/logo.png" alt="Nile Transfer" /> -->
+        <img src="./assets/logo.png" alt="Nile Transfer" />
         <div>
           <h1>Nile Transfer Admin</h1>
-          <div class="sub">Static + Supabase (Login • Clients • Transfers • Rates • Proof Upload)</div>
+          <div class="sub">نظام إدارة العملاء والمعاملات وسعر الصرف ورفع الإثبات</div>
         </div>
       </div>
 
       <div class="right">
-        <div id="whoami" class="badge"></div>
-        <button id="btnLogout" class="btn ghost" style="display:none;">Logout</button>
+        <span class="badge" id="whoami" style="display:none"></span>
+        <button class="btn ghost" id="btnLogout" style="display:none">Logout</button>
       </div>
     </header>
 
-    <!-- LOGIN -->
-    <section id="loginCard" class="card">
-      <h2 style="margin:0 0 10px;">تسجيل دخول الإدارة</h2>
-
+    <!-- Login -->
+    <section class="card" id="loginCard">
+      <h2 class="h2">تسجيل دخول الإدارة</h2>
       <div class="grid">
         <div class="field">
           <label>الإيميل</label>
-          <input id="loginEmail" placeholder="admin@email.com" />
+          <input id="loginEmail" type="email" placeholder="admin@email.com" />
         </div>
         <div class="field">
           <label>كلمة المرور</label>
           <input id="loginPassword" type="password" placeholder="••••••••" />
         </div>
-      </div>
-
-      <div style="display:flex; gap:10px; align-items:center; margin-top:12px;">
-        <button id="btnLogin" class="btn primary">Login</button>
-        <span id="loginMsg" class="msg" style="display:inline-block; padding:10px 12px;"></span>
+        <div class="field full">
+          <button class="btn primary" id="btnLogin">Login</button>
+          <div class="msg" id="loginMsg" style="display:none"></div>
+        </div>
       </div>
     </section>
 
-    <!-- APP -->
-    <main id="app" style="display:none;">
-      <nav class="tabs card">
-        <button class="tab active" data-tab="clients">العملاء</button>
-        <button class="tab" data-tab="newTransfer">تحويل جديد</button>
-        <button class="tab" data-tab="transfers">كل التحويلات</button>
-        <button class="tab" data-tab="rates">أسعار الصرف</button>
-      </nav>
+    <!-- App -->
+    <section id="app" style="display:none">
 
-      <!-- CLIENTS -->
-      <section id="tab-clients" class="card">
-        <div style="display:flex; gap:12px; justify-content:space-between; align-items:center; flex-wrap:wrap;">
-          <h2 style="margin:0;">العملاء</h2>
-          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <input id="clientSearch" placeholder="بحث بالاسم/الهاتف/الإيميل/الكود" style="min-width:260px;" />
-            <button id="btnReloadClients" class="btn">تحديث</button>
-          </div>
+      <div class="card">
+        <div class="tabs">
+          <button class="tab active" data-tab="dashboard">Dashboard</button>
+          <button class="tab" data-tab="clients">Customers</button>
+          <button class="tab" data-tab="newTransfer">New Transfer</button>
+          <button class="tab" data-tab="transfers">All Transfers</button>
+          <button class="tab" data-tab="rates">Exchange Rates</button>
         </div>
 
-        <div class="grid">
-          <div class="field third">
-            <label>اسم العميل</label>
-            <input id="cName" placeholder="مثال: أحمد محمد" />
-          </div>
-          <div class="field third">
-            <label>رقم الهاتف</label>
-            <input id="cPhone" placeholder="+249..." />
-          </div>
-          <div class="field third">
-            <label>الإيميل</label>
-            <input id="cEmail" placeholder="name@email.com" />
+        <!-- Dashboard -->
+        <div id="tab-dashboard" style="display:block">
+          <div class="kpi">
+            <div class="box">
+              <div class="t">Total Clients</div>
+              <div class="v" id="kpiClients">0</div>
+            </div>
+            <div class="box">
+              <div class="t">Total Transfers</div>
+              <div class="v" id="kpiTransfers">0</div>
+            </div>
+            <div class="box">
+              <div class="t">Pending</div>
+              <div class="v" id="kpiPending">0</div>
+            </div>
           </div>
 
-          <div class="field full" style="display:flex; justify-content:flex-end;">
-            <button id="btnAddClient" class="btn primary">إضافة عميل</button>
-          </div>
+          <div class="sectionTitle">آخر التحويلات</div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Client</th>
+                <th>Route</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="dashTransfersTbody"></tbody>
+          </table>
         </div>
 
-        <table class="table">
-          <thead>
-            <tr>
-              <th>الاسم</th>
-              <th>الهاتف</th>
-              <th>الإيميل</th>
-              <th>الكود</th>
-              <th>ملف العميل</th>
-            </tr>
-          </thead>
-          <tbody id="clientsTbody"></tbody>
-        </table>
-
-        <div id="clientFile" class="card" style="display:none; margin-top:14px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
-            <h3 style="margin:0;">ملف العميل</h3>
-            <div id="clientFileTitle" class="badge"></div>
+        <!-- Clients -->
+        <div id="tab-clients" style="display:none">
+          <div class="sectionRow">
+            <div class="sectionTitle">Customers</div>
+            <div class="rowActions">
+              <button class="btn" id="btnReloadClients">Refresh</button>
+            </div>
           </div>
 
-          <div style="margin-top:12px;">
+          <div class="grid">
+            <div class="field full">
+              <label>بحث (الاسم / الإيميل / الهاتف / الكود)</label>
+              <input id="clientSearch" placeholder="ابحث..." />
+              <div class="hint">تقدر تفتح ملف العميل وتشوف معاملاتو وتعدل بياناته.</div>
+            </div>
+          </div>
+
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Code</th>
+                <th>Open</th>
+              </tr>
+            </thead>
+            <tbody id="clientsTbody"></tbody>
+          </table>
+
+          <div class="sectionTitle">Add / Edit Client</div>
+          <div class="grid">
+            <input type="hidden" id="cId" />
+            <div class="field">
+              <label>Customer name</label>
+              <input id="cName" placeholder="Example: Ahmed Mohamed" />
+            </div>
+            <div class="field">
+              <label>Email</label>
+              <input id="cEmail" placeholder="name@email.com" />
+            </div>
+            <div class="field">
+              <label>Phone number</label>
+              <input id="cPhone" placeholder="+2010..." />
+            </div>
+            <div class="field">
+              <label>Client Code (Auto)</label>
+              <input id="cCode" placeholder="NTC-000001" disabled />
+            </div>
+
+            <div class="field full">
+              <label>Address line 1</label>
+              <input id="cAddr1" placeholder="Street / Building / Apartment" />
+            </div>
+            <div class="field full">
+              <label>Address line 2</label>
+              <input id="cAddr2" placeholder="More details (optional)" />
+            </div>
+            <div class="field third">
+              <label>City</label>
+              <input id="cCity" />
+            </div>
+            <div class="field third">
+              <label>State</label>
+              <input id="cState" />
+            </div>
+            <div class="field third">
+              <label>Postal code</label>
+              <input id="cZip" />
+            </div>
+            <div class="field third">
+              <label>Country</label>
+              <input id="cCountry" />
+            </div>
+            <div class="field full">
+              <label>Notes</label>
+              <textarea id="cNotes" placeholder="أي تفاصيل إضافية..."></textarea>
+            </div>
+
+            <div class="field full">
+              <button class="btn primary" id="btnSaveClient">Save client</button>
+              <button class="btn" id="btnNewClient">New</button>
+              <div class="msg" id="clientMsg" style="display:none"></div>
+            </div>
+          </div>
+
+          <div class="card" id="clientFile" style="display:none;margin-top:16px;">
+            <div class="sectionRow">
+              <div class="sectionTitle" id="clientFileTitle">Customer file</div>
+              <div class="rowActions">
+                <button class="btn" id="btnCloseClientFile">Close</button>
+              </div>
+            </div>
+
+            <div class="grid" id="clientFileInfo"></div>
+
+            <div class="sectionTitle">Customer transactions</div>
             <table class="table">
               <thead>
                 <tr>
                   <th>Order</th>
-                  <th>إرسال → استلام</th>
-                  <th>المبلغ</th>
-                  <th>الحالة</th>
-                  <th>إثبات</th>
+                  <th>Route</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Proof</th>
+                  <th>Details</th>
                 </tr>
               </thead>
               <tbody id="clientTransfersTbody"></tbody>
             </table>
           </div>
         </div>
-      </section>
 
-      <!-- NEW TRANSFER -->
-      <section id="tab-newTransfer" class="card" style="display:none;">
-        <h2 style="margin:0 0 10px;">تحويل جديد</h2>
-
-        <div class="grid">
-          <!-- ✅ Client autocomplete -->
-          <div class="field full">
-            <label>العميل (ابحث بالاسم/الإيميل/الهاتف/الكود)</label>
-            <div id="clientAutoBox" class="autocomplete-box">
-              <input id="tClientSearch" placeholder="ابدأ اكتب… حيظهر لك اقتراحات العملاء" autocomplete="off" />
-              <div id="clientSuggestions" class="suggestions"></div>
-            </div>
-            <input type="hidden" id="tClient" />
-            <div class="hint">لازم تختار العميل من الاقتراحات.</div>
-          </div>
-
-          <div class="field">
-            <label>طريقة الدفع</label>
-            <select id="tPayMethod">
-              <option value="Zelle">Zelle</option>
-              <option value="CashApp">Cash App</option>
-              <option value="Cash">Cash</option>
-            </select>
-          </div>
-
-          <div class="field">
-            <label>بلد الإرسال</label>
-            <select id="tSendCountry"></select>
-          </div>
-
-          <div class="field">
-            <label>بلد الاستلام</label>
-            <select id="tReceiveCountry"></select>
-          </div>
-
-          <div class="field">
-            <label>مبلغ الإرسال</label>
-            <input id="tSendAmount" type="number" step="0.01" placeholder="100" />
-          </div>
-
-          <div class="field">
-            <label>سعر الصرف (يدوي)</label>
-            <input id="tRate" type="number" step="0.0001" placeholder="48.5" />
-            <div class="hint">لو خليتو فاضي حيجيب السعر من صفحة أسعار الصرف (لو موجود) ويحسب تلقائي.</div>
-          </div>
-
-          <div class="field">
-            <label>اسم المستلم</label>
-            <input id="tReceiverName" placeholder="اسم المستلم" />
-          </div>
-
-          <div class="field">
-            <label>بيانات المستلم</label>
-            <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
-              <label style="display:flex; gap:8px; align-items:center;">
-                <input type="radio" name="rcType" value="phone" checked />
-                <span>هاتف</span>
-              </label>
-              <label style="display:flex; gap:8px; align-items:center;">
-                <input type="radio" name="rcType" value="bank" />
-                <span>حساب بنكي</span>
-              </label>
-            </div>
-
-            <div id="rcPhoneBox" style="margin-top:10px;">
-              <input id="tReceiverPhone" placeholder="رقم هاتف المستلم" />
-            </div>
-
-            <div id="rcBankBox" style="margin-top:10px; display:none;">
-              <input id="tReceiverBank" placeholder="حساب بنكي / IBAN" />
+        <!-- New Transfer -->
+        <div id="tab-newTransfer" style="display:none">
+          <div class="sectionRow">
+            <div class="sectionTitle">New Transfer</div>
+            <div class="rowActions">
+              <span class="badge" id="selectedClientBadge" style="display:none"></span>
             </div>
           </div>
 
-          <!-- ✅ multiple proof upload -->
-          <div class="field">
-            <label>إثبات التحويل (صور/PDF)</label>
-            <input id="tProof" type="file" multiple accept="image/*,application/pdf" />
-            <div class="hint">تقدر ترفع أكثر من صورة/ملف PDF مرة واحدة.</div>
-          </div>
+          <!-- Client autocomplete -->
+          <div class="grid">
+            <div class="field full">
+              <label>Search client (name / email / phone / code)</label>
+              <div id="clientAutoBox" class="autocomplete-box">
+                <input id="tClientSearch" placeholder="ابدأ اكتب..." autocomplete="off" />
+                <div id="clientSuggestions" class="suggestions"></div>
+              </div>
+              <input type="hidden" id="tClient" />
+              <div class="hint">لازم تختار العميل من الاقتراحات.</div>
+            </div>
 
-          <div class="field full">
-            <label>ملاحظة داخلية</label>
-            <textarea id="tNote" rows="3" placeholder="ملاحظات للتيم..."></textarea>
+            <div class="field quarter">
+              <label>Payment method</label>
+              <select id="tPayMethod">
+                <option value="Zelle">Zelle</option>
+                <option value="Cash App">Cash App</option>
+                <option value="Cash">Cash</option>
+              </select>
+            </div>
+
+            <div class="field quarter">
+              <label>Send country</label>
+              <select id="tSendCountry"></select>
+            </div>
+
+            <div class="field quarter">
+              <label>Receive country</label>
+              <select id="tReceiveCountry"></select>
+            </div>
+
+            <div class="field quarter">
+              <label>Send amount</label>
+              <input id="tSendAmount" type="number" step="0.01" placeholder="0" />
+            </div>
+
+            <div class="field quarter">
+              <label>Exchange rate (optional)</label>
+              <input id="tRate" type="number" step="0.0001" placeholder="Leave empty to use saved rate" />
+              <div class="hint">إذا تركتو فاضي، بياخد من Exchange Rates (لو موجود).</div>
+            </div>
+
+            <div class="field quarter">
+              <label>Receive amount (auto)</label>
+              <input id="tReceivePreview" disabled />
+            </div>
+
+            <div class="field full">
+              <label>Recipient name</label>
+              <input id="tReceiverName" placeholder="Recipient name" />
+            </div>
+
+            <div class="field full">
+              <label>Recipient contact</label>
+              <div class="radioRow">
+                <label class="radio"><input type="radio" name="rcType" value="phone" checked /> Phone</label>
+                <label class="radio"><input type="radio" name="rcType" value="bank" /> Bank</label>
+              </div>
+            </div>
+
+            <div class="field full" id="rcPhoneBox">
+              <label>Recipient phone</label>
+              <input id="tReceiverPhone" placeholder="+20..." />
+            </div>
+
+            <div class="field full" id="rcBankBox" style="display:none">
+              <label>Bank account</label>
+              <input id="tReceiverBank" placeholder="IBAN / Account number" />
+            </div>
+
+            <div class="field full">
+              <label>Internal note</label>
+              <textarea id="tNote" placeholder="Notes for the team..."></textarea>
+            </div>
+
+            <div class="field full">
+              <label>Proof of transfer (optional) — multiple files</label>
+              <input id="tProof" type="file" multiple accept="image/*,application/pdf" />
+              <div class="hint">تقدر ترفع أكثر من صورة/ملف PDF (اختياري).</div>
+            </div>
+
+            <div class="field full">
+              <button class="btn primary" id="btnCreateTransfer">Save transfer</button>
+              <div class="msg" id="newTransferMsg" style="display:none"></div>
+            </div>
           </div>
         </div>
 
-        <div style="display:flex; gap:10px; align-items:center; margin-top:12px; flex-wrap:wrap;">
-          <button id="btnCreateTransfer" class="btn primary">حفظ التحويلة</button>
-          <span id="newTransferMsg" class="msg" style="flex:1;"></span>
-        </div>
-      </section>
-
-      <!-- TRANSFERS -->
-      <section id="tab-transfers" class="card" style="display:none;">
-        <div style="display:flex; gap:12px; justify-content:space-between; align-items:center; flex-wrap:wrap;">
-          <h2 style="margin:0;">كل التحويلات</h2>
-          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <select id="filterStatus">
-              <option value="">كل الحالات</option>
-              <option value="Pending">Pending</option>
-              <option value="Processing">Processing</option>
-              <option value="Completed">Completed</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-            <button id="btnReloadTransfers" class="btn">تحديث</button>
+        <!-- Transfers -->
+        <div id="tab-transfers" style="display:none">
+          <div class="sectionRow">
+            <div class="sectionTitle">All Transfers</div>
+            <div class="rowActions">
+              <select id="filterStatus">
+                <option value="">All</option>
+                <option value="Pending">Pending</option>
+                <option value="Processing">Processing</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+              <button class="btn" id="btnReloadTransfers">Refresh</button>
+            </div>
           </div>
-        </div>
 
-        <div style="margin-top:12px;">
           <table class="table">
             <thead>
               <tr>
                 <th>Order</th>
-                <th>العميل</th>
-                <th>إرسال → استلام</th>
-                <th>المبلغ</th>
-                <th>الحالة</th>
-                <th>إثبات</th>
+                <th>Client</th>
+                <th>Route</th>
+                <th>Send</th>
+                <th>Status</th>
+                <th>Proof</th>
+                <th>Details</th>
               </tr>
             </thead>
             <tbody id="transfersTbody"></tbody>
           </table>
         </div>
-      </section>
 
-      <!-- RATES -->
-      <section id="tab-rates" class="card" style="display:none;">
-        <div style="display:flex; gap:12px; justify-content:space-between; align-items:center; flex-wrap:wrap;">
-          <h2 style="margin:0;">أسعار الصرف</h2>
-          <button id="btnReloadRates" class="btn">تحديث</button>
+        <!-- Rates -->
+        <div id="tab-rates" style="display:none">
+          <div class="sectionRow">
+            <div class="sectionTitle">Exchange Rates</div>
+            <div class="rowActions">
+              <button class="btn" id="btnReloadRates">Refresh</button>
+            </div>
+          </div>
+
+          <div class="grid">
+            <div class="field quarter">
+              <label>From country</label>
+              <select id="rFromCountry"></select>
+            </div>
+            <div class="field quarter">
+              <label>To country</label>
+              <select id="rToCountry"></select>
+            </div>
+            <div class="field quarter">
+              <label>Rate</label>
+              <input id="rRate" type="number" step="0.0001" placeholder="0" />
+            </div>
+            <div class="field quarter">
+              <label>&nbsp;</label>
+              <button class="btn primary" id="btnSaveRate">Save rate</button>
+            </div>
+
+            <div class="field full">
+              <div class="msg" id="ratesMsg" style="display:none"></div>
+            </div>
+          </div>
+
+          <table class="table">
+            <thead>
+              <tr>
+                <th>From</th>
+                <th>To</th>
+                <th>Pair</th>
+                <th>Rate</th>
+              </tr>
+            </thead>
+            <tbody id="ratesTbody"></tbody>
+          </table>
         </div>
+      </div>
+    </section>
 
-        <div class="grid" style="margin-top:12px;">
-          <div class="field">
-            <label>من بلد</label>
-            <select id="rFromCountry"></select>
-          </div>
-          <div class="field">
-            <label>إلى بلد</label>
-            <select id="rToCountry"></select>
-          </div>
-          <div class="field">
-            <label>Rate</label>
-            <input id="rRate" type="number" step="0.0001" placeholder="48.5" />
-          </div>
-          <div class="field" style="display:flex; align-items:flex-end;">
-            <button id="btnSaveRate" class="btn primary" style="width:100%;">حفظ السعر</button>
-          </div>
-        </div>
+  </div>
 
-        <div id="ratesMsg" class="msg"></div>
-
-        <table class="table" style="margin-top:12px;">
-          <thead>
-            <tr>
-              <th>من</th>
-              <th>إلى</th>
-              <th>Currency</th>
-              <th>Rate</th>
-            </tr>
-          </thead>
-          <tbody id="ratesTbody"></tbody>
-        </table>
-      </section>
-    </main>
+  <!-- Details modal -->
+  <div class="modal" id="detailsModal" style="display:none">
+    <div class="modalCard">
+      <div class="modalHead">
+        <div class="sectionTitle" id="detailsTitle">Transfer details</div>
+        <button class="btn" id="btnCloseDetails">Close</button>
+      </div>
+      <div class="grid" id="detailsBody"></div>
+      <div class="sectionTitle">Proofs</div>
+      <div id="detailsProofs" class="proofGrid"></div>
+    </div>
   </div>
 
   <script src="./app.js"></script>
