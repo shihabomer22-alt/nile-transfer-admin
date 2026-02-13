@@ -694,11 +694,11 @@
     $("kpiTransfers").textContent = String(allTransfers.length);
     $("kpiPending").textContent = String(allTransfers.filter((t) => t.status === "Pending").length);
 
-    // Table (filter)
+    // Table (dashFilter)
     const dashFilter = $("filterStatus") ? $("filterStatus").value : "";
-    const rows = filter ? allTransfers.filter((t) => t.status === dashFilter) : allTransfers;
+    const rows = dashFilter ? allTransfers.filter((t) => t.status === dashFilter) : allTransfers;
 
-    // Search + filter
+    // Search + dashFilter
     
     const q = ($("dashSearch")?.value || "").trim().toLowerCase();
 
@@ -1007,7 +1007,7 @@
     setupReceiverToggle();
     attachClientAutocomplete();
 
-    // dashboard search/filter
+    // dashboard search/dashFilter
     
     if ($("dashSearch")) $("dashSearch").addEventListener("input", () => reloadDashboard().catch(() => {}));
 
