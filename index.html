@@ -17,7 +17,103 @@
 </head>
 
 <body>
-  
+  <div class="wrap">
+
+    <!-- Header -->
+    <header class="top">
+      <div class="brand">
+        <img src="./assets/logo.png" alt="Nile Transfer" />
+        <div>
+          <h1>Nile Transfer Admin</h1>
+          <div class="sub">نظام إدارة العملاء والمعاملات وسعر الصرف ورفع الإثبات</div>
+        </div>
+      </div>
+
+      <div class="right">
+        <span class="badge" id="whoami" style="display:none"></span>
+        <button class="btn ghost" id="btnLogout" style="display:none">Logout</button>
+      </div>
+    </header>
+
+    <!-- Login -->
+    <section class="card" id="loginCard">
+      <h2 class="h2">تسجيل دخول الإدارة</h2>
+      <div class="grid">
+        <div class="field">
+          <label>الإيميل</label>
+          <input id="loginEmail" type="email" placeholder="admin@email.com" />
+        </div>
+        <div class="field">
+          <label>كلمة المرور</label>
+          <input id="loginPassword" type="password" placeholder="••••••••" />
+        </div>
+        <div class="field full">
+          <button class="btn primary" id="btnLogin">Login</button>
+          <div class="msg" id="loginMsg" style="display:none"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- App -->
+    <section id="app" style="display:none">
+
+      <div class="card">
+        <div class="tabs">
+          <button class="tab active" data-tab="dashboard">Dashboard</button>
+          <button class="tab" data-tab="clients">Customers</button>
+          <button class="tab" data-tab="newTransfer">New Transfer</button>
+          <button class="tab" data-tab="rates">Exchange Rates</button>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="tab-dashboard" style="display:block">
+          <div class="kpi">
+            <div class="box">
+              <div class="t">Total Clients</div>
+              <div class="v" id="kpiClients">0</div>
+            </div>
+            <div class="box">
+              <div class="t">Total Transfers</div>
+              <div class="v" id="kpiTransfers">0</div>
+            </div>
+            <div class="box">
+              <div class="t">Pending</div>
+              <div class="v" id="kpiPending">0</div>
+            </div>
+          </div>
+        </div>
+            <div class="field" style="align-self:end">
+              <button id="btnReloadTransfers" class="btn">Reload</button>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="sectionTitle">آخر التحويلات</div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Client</th>
+                <th>Route</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Proof</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="dashTransfersTbody"></tbody>
+          </table>
+
+          <div class="divider"></div>
+
+          <div class="sectionRow">
+            <div class="sectionTitle">كل المعاملات</div>
+            <div class="rowActions">
+              <span class="badge" id="dashCount">0</span>
+              <button id="btnReloadDashboard" class="btn">Reload</button>
+            </div>
+          </div>
 
           <div class="grid">
             <div class="field third">
