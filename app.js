@@ -23,6 +23,17 @@
   const normalizeCountry = (v) => (v === "America" ? "USA" : v);
   const countryByValue = (v) => COUNTRIES.find((c) => c.value === normalizeCountry(v)) || null;
 
+  const renderStatusBadge = (status) => {
+    const s = String(status || "Pending");
+    const key = s.toLowerCase();
+    let cls = "status Pending";
+    if (key === "processing") cls = "status Processing";
+    else if (key === "completed") cls = "status Completed";
+    else if (key === "cancelled" || key === "canceled") cls = "status Cancelled";
+    return `<span class="${cls}">${escapeHtml(s)}</span>`;
+  };
+  
+  
   function fillCountrySelect(selectEl) {
     if (!selectEl) return;
     selectEl.innerHTML = "";
@@ -55,8 +66,10 @@
 
   const SUPABASE_URL = normalizeSupabaseUrl(window.__SUPABASE_URL__);
   const normalizeAnonKey = (key) => {
-    // If user pasted key + URL together, keep only the first token
+    // Robust: extract the first JWT-looking token even if it was pasted twice or without whitespace.
     const k = String(key || "").trim();
+    const jwt = k.match(/eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*/);
+    if (jwt && jwt[0]) return jwt[0];
     return k.split(/\s+/)[0] || "";
   };
 
