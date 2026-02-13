@@ -127,6 +127,16 @@
   }
 
   // --- Helpers
+  function fmtDate(iso) {
+    if (!iso) return "";
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString("ar-EG");
+    } catch {
+      return String(iso);
+    }
+  }
+
   function showMsg(el, text) {
     if (!el) return;
     el.style.display = text ? "block" : "none";
@@ -290,14 +300,13 @@
         btn.classList.add("active");
 
         const tab = btn.dataset.tab;
-        const tabs = ["dashboard", "transfers", "clients", "newTransfer", "rates"];
+        const tabs = ["dashboard", "clients", "newTransfer", "rates"];
         tabs.forEach((t) => {
           const el = $("tab-" + t);
           if (el) el.style.display = t === tab ? "block" : "none";
         });
 
         if (tab === "dashboard") reloadDashboard();
-        if (tab === "transfers") reloadDashboard();
         if (tab === "clients") reloadClientsUI();
         if (tab === "rates") reloadRatesUI();
       });
@@ -689,28 +698,69 @@
     const filter = $("filterStatus") ? $("filterStatus").value : "";
     const rows = filter ? allTransfers.filter((t) => t.status === filter) : allTransfers;
 
-    $("dashTransfersTbody").innerHTML = rows
-      .slice(0, 300)
+    // Search + filter
+    const filter = $("filterStatus") ? $("filterStatus").value : "";
+    const q = ($("dashSearch")?.value || "").trim().toLowerCase();
+
+    const filtered = allTransfers.filter((t) => {
+      if (filter && String(t.status || "") !== filter) return false;
+
+      if (!q) return true;
+      const order = String(t.order_ref || "").toLowerCase();
+      const client = String(t.clients?.full_name || "").toLowerCase();
+      const route = `${normalizeCountry(t.send_country)} -> ${normalizeCountry(t.receive_country)}`.toLowerCase();
+      return order.includes(q) || client.includes(q) || route.includes(q);
+    });
+
+    if ($("dashCount")) $("dashCount").textContent = String(filtered.length);
+
+    $("dashTransfersTbody").innerHTML = filtered
+      .slice(0, 500)
       .map((t) => {
-        const proofCount = parseProofPaths(t.proof_path).length;
+        const status = String(t.status || "Pending");
         return `
           <tr>
+            <td>${escapeHtml(fmtDate(t.created_at))}</td>
             <td>${escapeHtml(t.order_ref || "")}</td>
             <td>${escapeHtml(t.clients?.full_name || "")}</td>
             <td>${escapeHtml(normalizeCountry(t.send_country))} → ${escapeHtml(normalizeCountry(t.receive_country))}</td>
             <td>${Number(t.send_amount || 0).toFixed(2)} ${escapeHtml(t.send_currency || "")}</td>
-            <td>${renderStatusBadge(t.status || "")}</td>
-            <td><span class="badge">${proofCount ? proofCount + " file(s)" : "None"}</span></td>
+            <td>
+              <select data-status-select="${escapeHtml(t.id)}">
+                <option value="Pending" ${status==="Pending" ? "selected" : ""}>Pending</option>
+                <option value="Processing" ${status==="Processing" ? "selected" : ""}>Processing</option>
+                <option value="Completed" ${status==="Completed" ? "selected" : ""}>Completed</option>
+                <option value="Cancelled" ${status==="Cancelled" ? "selected" : ""}>Cancelled</option>
+              </select>
+            </td>
             <td><button class="btn" data-open-transfer="${escapeHtml(t.id)}">Details</button></td>
           </tr>
         `;
       })
       .join("");
 
+    // Auto-save status on change
+    document.querySelectorAll("select[data-status-select]").forEach((sel) => {
+      sel.addEventListener("change", async () => {
+        const id = sel.getAttribute("data-status-select");
+        const next = sel.value || "Pending";
+        try {
+          await updateTransfer(id, { status: next });
+          showMsg($("dashMsg"), "تم تحديث الحالة ✅");
+          setTimeout(() => showMsg($("dashMsg"), ""), 1200);
+          await reloadDashboard(); // refresh KPIs + counts
+        } catch (e) {
+          console.error(e);
+          alert(e?.message || "Failed to update status");
+        }
+      });
+    });
+
+    // Details modal
     document.querySelectorAll("button[data-open-transfer]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const id = btn.getAttribute("data-open-transfer");
-        const t = rows.find((x) => x.id === id) || allTransfers.find((x) => x.id === id);
+        const t = filtered.find((x) => x.id === id) || allTransfers.find((x) => x.id === id);
         if (t) openTransferDetails(t, null);
       });
     });
@@ -957,6 +1007,10 @@
     setupReceiverToggle();
     attachClientAutocomplete();
 
+    // dashboard search/filter
+    
+    if ($("dashSearch")) $("dashSearch").addEventListener("input", () => reloadDashboard().catch(() => {}));
+
     // login
     $("btnLogin").addEventListener("click", async () => {
       showMsg($("loginMsg"), "");
@@ -992,6 +1046,9 @@
       showMsg($("clientMsg"), "");
     });
 
+    // dashboard reload
+    if ($("btnReloadDashboard")) $("btnReloadDashboard").addEventListener("click", () => reloadDashboard().catch((e) => alert(e.message)));
+
     // create transfer
     $("btnCreateTransfer").addEventListener("click", () => onCreateTransfer().catch((e) => alert(e.message)));
 
@@ -1000,10 +1057,6 @@
     $("tRate").addEventListener("input", () => updateReceivePreview().catch(() => {}));
     $("tSendCountry").addEventListener("change", () => updateReceivePreview().catch(() => {}));
     $("tReceiveCountry").addEventListener("change", () => updateReceivePreview().catch(() => {}));
-
-    // transfers filter
-    $("filterStatus").addEventListener("change", () => reloadDashboard().catch(() => {}));
-    $("btnReloadTransfers").addEventListener("click", () => reloadDashboard().catch((e) => alert(e.message)));
 
     // rates
     $("btnSaveRate").addEventListener("click", () => onSaveRate().catch((e) => alert(e.message)));
