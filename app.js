@@ -695,15 +695,15 @@
     $("kpiPending").textContent = String(allTransfers.filter((t) => t.status === "Pending").length);
 
     // Table (filter)
-    const filter = $("filterStatus") ? $("filterStatus").value : "";
+    const dashFilter = $("filterStatus") ? $("filterStatus").value : "";
     const rows = filter ? allTransfers.filter((t) => t.status === filter) : allTransfers;
 
     // Search + filter
-    const filter = $("filterStatus") ? $("filterStatus").value : "";
+    
     const q = ($("dashSearch")?.value || "").trim().toLowerCase();
 
     const filtered = allTransfers.filter((t) => {
-      if (filter && String(t.status || "") !== filter) return false;
+      if (dashFilter && String(t.status || "") !== dashFilter) return false;
 
       if (!q) return true;
       const order = String(t.order_ref || "").toLowerCase();
