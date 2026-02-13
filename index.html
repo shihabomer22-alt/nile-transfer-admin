@@ -60,7 +60,7 @@
       <div class="card">
         <div class="tabs">
           <button class="tab active" data-tab="dashboard">Dashboard</button>
-        <button class="tab" data-tab="transfers">Transfers</button>
+          <button class="tab" data-tab="transfers">Transfers</button>
           <button class="tab" data-tab="clients">Customers</button>
           <button class="tab" data-tab="newTransfer">New Transfer</button>
           <button class="tab" data-tab="rates">Exchange Rates</button>
@@ -82,8 +82,8 @@
               <div class="v" id="kpiPending">0</div>
             </div>
           </div>
+        </div>
 
-  
         <!-- Transfers -->
         <div id="tab-transfers" style="display:none">
           <div class="row">
@@ -101,8 +101,10 @@
               <button id="btnReloadTransfers" class="btn">Reload</button>
             </div>
           </div>
+
           <div class="divider"></div>
-<div class="sectionTitle">آخر التحويلات</div>
+
+          <div class="sectionTitle">آخر التحويلات</div>
           <table class="table">
             <thead>
               <tr>
@@ -111,14 +113,12 @@
                 <th>Route</th>
                 <th>Amount</th>
                 <th>Status</th>
+                <th>Proof</th>
                 <th>Details</th>
               </tr>
             </thead>
             <tbody id="dashTransfersTbody"></tbody>
           </table>
-        </div>
-
-        
         </div>
 
         <!-- Clients -->
@@ -331,7 +331,8 @@
             </div>
           </div>
         </div>
-<!-- Rates -->
+
+        <!-- Rates -->
         <div id="tab-rates" style="display:none">
           <div class="sectionRow">
             <div class="sectionTitle">Exchange Rates</div>
