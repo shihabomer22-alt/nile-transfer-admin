@@ -517,7 +517,7 @@
       </div>
     `;
 
-    $("btnEditFromFile").addEventListener("click", () => {
+    if($("btnEditFromFile"))$("btnEditFromFile").addEventListener("click", () => {
       fillClientForm(clientRow);
       showMsg($("clientMsg"), "Loaded for edit ✅");
       // jump user to clients tab visually
@@ -1009,10 +1009,10 @@
 
     // dashboard search/dashFilter
     
-    if ($("dashSearch")) $("dashSearch").addEventListener("input", () => reloadDashboard().catch(() => {}));
+    if ($("dashSearch")) if($("dashSearch"))$("dashSearch").addEventListener("input", () => reloadDashboard().catch(() => {}));
 
     // login
-    $("btnLogin").addEventListener("click", async () => {
+    if($("btnLogin"))$("btnLogin").addEventListener("click", async () => {
       showMsg($("loginMsg"), "");
       const email = ($("loginEmail").value || "").trim();
       const password = $("loginPassword").value || "";
@@ -1025,47 +1025,47 @@
     });
 
     // logout
-    $("btnLogout").addEventListener("click", async () => {
+    if($("btnLogout"))$("btnLogout").addEventListener("click", async () => {
       await signOut();
       location.reload();
     });
 
     // close client file
-    $("btnCloseClientFile").addEventListener("click", () => {
+    if($("btnCloseClientFile"))$("btnCloseClientFile").addEventListener("click", () => {
       $("clientFile").style.display = "none";
     });
 
     // client search
-    $("clientSearch").addEventListener("input", () => reloadClientsUI().catch(() => {}));
-    $("btnReloadClients").addEventListener("click", () => reloadClientsUI().catch((e) => alert(e.message)));
+    if($("clientSearch"))$("clientSearch").addEventListener("input", () => reloadClientsUI().catch(() => {}));
+    if($("btnReloadClients"))$("btnReloadClients").addEventListener("click", () => reloadClientsUI().catch((e) => alert(e.message)));
 
     // save/new client
-    $("btnSaveClient").addEventListener("click", () => onSaveClient().catch((e) => alert(e.message)));
-    $("btnNewClient").addEventListener("click", () => {
+    if($("btnSaveClient"))$("btnSaveClient").addEventListener("click", () => onSaveClient().catch((e) => alert(e.message)));
+    if($("btnNewClient"))$("btnNewClient").addEventListener("click", () => {
       clearClientForm();
       showMsg($("clientMsg"), "");
     });
 
     // dashboard reload
-    if ($("btnReloadDashboard")) $("btnReloadDashboard").addEventListener("click", () => reloadDashboard().catch((e) => alert(e.message)));
+    if ($("btnReloadDashboard")) if($("btnReloadDashboard"))$("btnReloadDashboard").addEventListener("click", () => reloadDashboard().catch((e) => alert(e.message)));
 
     // create transfer
-    $("btnCreateTransfer").addEventListener("click", () => onCreateTransfer().catch((e) => alert(e.message)));
+    if($("btnCreateTransfer"))$("btnCreateTransfer").addEventListener("click", () => onCreateTransfer().catch((e) => alert(e.message)));
 
     // auto preview
-    $("tSendAmount").addEventListener("input", () => updateReceivePreview().catch(() => {}));
-    $("tRate").addEventListener("input", () => updateReceivePreview().catch(() => {}));
-    $("tSendCountry").addEventListener("change", () => updateReceivePreview().catch(() => {}));
-    $("tReceiveCountry").addEventListener("change", () => updateReceivePreview().catch(() => {}));
+    if($("tSendAmount"))$("tSendAmount").addEventListener("input", () => updateReceivePreview().catch(() => {}));
+    if($("tRate"))$("tRate").addEventListener("input", () => updateReceivePreview().catch(() => {}));
+    if($("tSendCountry"))$("tSendCountry").addEventListener("change", () => updateReceivePreview().catch(() => {}));
+    if($("tReceiveCountry"))$("tReceiveCountry").addEventListener("change", () => updateReceivePreview().catch(() => {}));
 
     // rates
-    $("btnSaveRate").addEventListener("click", () => onSaveRate().catch((e) => alert(e.message)));
-    $("btnReloadRates").addEventListener("click", () => reloadRatesUI().catch((e) => alert(e.message)));
+    if($("btnSaveRate"))$("btnSaveRate").addEventListener("click", () => onSaveRate().catch((e) => alert(e.message)));
+    if($("btnReloadRates"))$("btnReloadRates").addEventListener("click", () => reloadRatesUI().catch((e) => alert(e.message)));
 
     // modal
-    $("btnCloseDetails").addEventListener("click", closeTransferDetails);
-    if ($("btnSaveDetails")) $("btnSaveDetails").addEventListener("click", () => saveTransferDetails().catch((e) => alert(e.message)));
-    $("detailsModal").addEventListener("click", (e) => {
+    if($("btnCloseDetails"))$("btnCloseDetails").addEventListener("click", closeTransferDetails);
+    if ($("btnSaveDetails")) if($("btnSaveDetails"))$("btnSaveDetails").addEventListener("click", () => saveTransferDetails().catch((e) => alert(e.message)));
+    if($("detailsModal"))$("detailsModal").addEventListener("click", (e) => {
       if (e.target.id === "detailsModal") closeTransferDetails();
     });
 
