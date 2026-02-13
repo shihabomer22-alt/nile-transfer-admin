@@ -60,6 +60,7 @@
       <div class="card">
         <div class="tabs">
           <button class="tab active" data-tab="dashboard">Dashboard</button>
+        <button class="tab" data-tab="transfers">Transfers</button>
           <button class="tab" data-tab="clients">Customers</button>
           <button class="tab" data-tab="newTransfer">New Transfer</button>
           <button class="tab" data-tab="rates">Exchange Rates</button>
@@ -82,7 +83,26 @@
             </div>
           </div>
 
-          <div class="sectionTitle">آخر التحويلات</div>
+  
+        <!-- Transfers -->
+        <div id="tab-transfers" style="display:none">
+          <div class="row">
+            <div class="field">
+              <label>Status filter</label>
+              <select id="filterStatus">
+                <option value="">All</option>
+                <option value="Pending">Pending</option>
+                <option value="Processing">Processing</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
+            <div class="field" style="align-self:end">
+              <button id="btnReloadTransfers" class="btn">Reload</button>
+            </div>
+          </div>
+          <div class="divider"></div>
+<div class="sectionTitle">آخر التحويلات</div>
           <table class="table">
             <thead>
               <tr>
@@ -96,6 +116,9 @@
             </thead>
             <tbody id="dashTransfersTbody"></tbody>
           </table>
+        </div>
+
+        
         </div>
 
         <!-- Clients -->
@@ -188,7 +211,8 @@
             <div class="sectionRow">
               <div class="sectionTitle" id="clientFileTitle">Customer file</div>
               <div class="rowActions">
-                <button class="btn" id="btnCloseClientFile">Close</button>
+                <button class="btn" id="btnEditFromFile">Edit client</button>
+                <button class="btn ghost" id="btnCloseClientFile">Close</button>
               </div>
             </div>
 
@@ -361,9 +385,38 @@
     <div class="modalCard">
       <div class="modalHead">
         <div class="sectionTitle" id="detailsTitle">Transfer details</div>
-        <button class="btn" id="btnCloseDetails">Close</button>
+        <button class="btn ghost" id="btnCloseDetails">Close</button>
       </div>
+
       <div class="grid" id="detailsBody"></div>
+
+      <div class="divider"></div>
+
+      <div class="row">
+        <div class="field">
+          <label>Update status</label>
+          <select id="detailsStatus">
+            <option value="Pending">Pending</option>
+            <option value="Processing">Processing</option>
+            <option value="Completed">Completed</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Add proof files (optional)</label>
+          <input id="detailsProofFiles" type="file" multiple accept="image/*,application/pdf" />
+          <div class="help">You can upload multiple images or PDFs.</div>
+        </div>
+      </div>
+
+      <div class="row" style="justify-content:flex-end; gap:10px">
+        <div id="detailsMsg" class="msg"></div>
+        <button id="btnSaveDetails" class="btn primary">Save changes</button>
+      </div>
+
+      <div class="divider"></div>
+
       <div class="sectionTitle">Proofs</div>
       <div id="detailsProofs" class="proofGrid"></div>
     </div>
